@@ -1,0 +1,8 @@
+FROM node:20-alpine
+WORKDIR /usr/src/app
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY scripts/demoPublisher.js ./scripts/demoPublisher.js
+ENV MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+ENV MQTT_TOPIC=tcc/demo/log
+CMD ["node", "scripts/demoPublisher.js"]

@@ -1,0 +1,48 @@
+version: '3.8'
+services:
+  mqtt-broker:
+    image: hivemq/hivemq-ce:2023.12
+    container_name: hivemq-ce
+    ports:
+      - "1883:1883"
+      - "8080:8080"
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: codex-app
+    ports:
+      - "3000:3000"
+    environment:
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+      - MQTT_CONTROL_CENTER=http://localhost:8080
+      - HA_BASE_URL=http://10.10.10.100:8123
+      - HA_TOKEN=
+      - ENABLE_HA=false
+      - DEMO_PUBLISHER_ENABLED=false
+    depends_on:
+      - mqtt-broker
+    volumes:
+      - ./.env:/usr/src/app/.env:ro
+
+  # node-red:
+  #   image: nodered/node-red:3.1
+  #   container_name: node-red-demo
+  #   ports:
+  #     - "1880:1880"
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - mqtt-broker
+
+  demo-publisher:
+    build:
+      context: .
+      dockerfile: Dockerfile.demo
+    container_name: demo-publisher
+    environment:
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+      - MQTT_TOPIC=tcc/demo/log
+    depends_on:
+      - mqtt-broker
+    deploy:
+      replicas: 0
