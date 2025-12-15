@@ -1,0 +1,29 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Prudentes Tuya All",
+        "description": "Configure Tuya Cloud credentials and device ids.",
+        "data": {
+          "access_id": "Tuya Access ID",
+          "access_secret": "Tuya Access Secret",
+          "region": "Region",
+          "base_url": "Base URL",
+          "device_ids": "Device IDs (comma separated)",
+          "polling_interval": "Polling interval (seconds)"
+        }
+      }
+    },
+    "options": {
+      "step": {
+        "options": {
+          "title": "Options",
+          "data": {
+            "device_ids": "Device IDs (comma separated)",
+            "polling_interval": "Polling interval (seconds)"
+          }
+        }
+      }
+    }
+  }
+}
