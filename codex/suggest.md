@@ -1,22 +1,19 @@
 # Sugestões e Variações do Prompt
 
 ## Melhorias incrementais
-- Adicionar testes unitários para `TuyaOptionsFlowHandler` (normalização de IDs, persistência de opções, cenários com lista vazia) usando `pytest` e fixtures simulando o flow manager do Home Assistant.
-- Incluir validação de conectividade Tuya no próprio fluxo de configuração, exibindo contagem de devices antes de salvar a entry.
-- Acrescentar lint Python (`ruff` ou `flake8`) ao workflow para cobrir o custom component além do `compileall`.
-- Publicar badge de status do GitHub Actions no `README.md`, indicando a última execução verde da pipeline CI-CD.
-- Criar script de smoke test MQTT que publica e consome dos tópicos `tcc/demo/*` para ser executado no job Docker.
+- Incluir um checklist explícito para validar o acesso ao HiveMQ Control Center (status HTTP 200 e carregamento do bundle JS) após subir o compose.
+- Acrescentar cenário de teste para o Options Flow simulando `config_entry.options` preenchido para garantir normalização dos `device_ids`.
+- Registrar no prompt um passo de verificação de conflitos de portas (8080/1883) antes de iniciar o Docker.
+- Solicitar que `README.md` inclua exemplos de `docker compose` usando portas alternativas para ambientes com restrição corporativa.
+- Pedir captura de logs do Home Assistant no momento do erro para enriquecer o troubleshooting.
 
 ## Variações por objetivo/escopo
-- Variante focada apenas em CI/CD: gerar prompt que monta a pipeline e scripts, sem alterar código da integração.
-- Variante com rollback seguro: instruções para manter uma tag/branch estável do componente Tuya e automatizar downgrade em caso de regressão.
-- Variação offline: substituir chamadas reais à Tuya por mocks em `ci_tuya_discovery.py`, útil para ambientes sem acesso externo.
-- Roteiro para validar a integração em HA Core (container) ao invés de HA OS, detalhando volumes e comandos `ha core restart`.
-- Fluxo estendido para incluir testes end-to-end com Playwright acessando o dashboard em `localhost:3000`.
+- Focar apenas em documentação: gerar guias passo a passo para subir a stack e coletar evidências sem modificar código.
+- Priorizar automação: criar scripts de healthcheck (MQTT e HA) e integrá-los ao CI em vez de alterar manualmente compose/config_flow.
+- Orientar migração: substituir HiveMQ por Mosquitto + Web UI e ajustar o dashboard para novo broker.
+- Tornar o prompt prescritivo para testes: exigir execução de `python -m compileall` e `npm run lint` com saída anexada.
 
 ## Ajustes de risco/custo
-- Tornar obrigatória a presença dos segredos `TUYA_*` no CI apenas em branches protegidas, mantendo execuções facultativas em PRs de contribuidores externos.
-- Habilitar cache de dependências (`npm ci`, `pip`) na pipeline para reduzir tempo/custo.
-- Criar alarme simples (ex.: GitHub issue automática) quando o passo de descoberta Tuya falhar, facilitando triagem.
-- Documentar limites de rate-limit da Tuya e configurar backoff exponencial no cliente para evitar bloqueios em pipelines recorrentes.
-- Adicionar passo de segurança (Dependabot/Snyk) focado no `package-lock` e dependências Python do custom component.
+- Oferecer opção de simulação quando o ambiente não suporta Docker, detalhando como validar as rotas manualmente.
+- Prever rollback: instruir a manter a tag anterior do HiveMQ como fallback (`hivemq/hivemq-ce:latest`) caso a versão fixada não esteja disponível no registry local.
+- Solicitar checkpoints intermediários (commits/PRs) para cada correção (Docker e integração) reduzindo risco de regressão cruzada.

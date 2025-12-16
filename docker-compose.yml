@@ -1,6 +1,6 @@
 services:
   mqtt-broker:
-    image: hivemq/hivemq-ce:latest
+    image: hivemq/hivemq-ce:2023.5
     container_name: hivemq-ce
     ports:
       - "1883:1883"

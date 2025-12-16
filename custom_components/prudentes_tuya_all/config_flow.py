@@ -64,9 +64,9 @@ class TuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class TuyaOptionsFlowHandler(config_entries.OptionsFlow):
   def __init__(self, config_entry):
-    # A OptionsFlow do Home Assistant não espera argumentos em __init__;
-    # armazenamos manualmente para evitar TypeError e manter o contexto.
-    self.config_entry = config_entry
+    # A OptionsFlow do Home Assistant mantém `config_entry` apenas como leitura;
+    # usamos o atributo privado para evitar AttributeError e preservar o contexto.
+    self._config_entry = config_entry
     self.hass = config_entry.hass
 
   @staticmethod
@@ -87,7 +87,7 @@ class TuyaOptionsFlowHandler(config_entries.OptionsFlow):
       user_input[CONF_DEVICE_IDS] = device_ids
       return self.async_create_entry(title="Opções", data=user_input)
 
-    defaults = {**self.config_entry.data, **self.config_entry.options}
+    defaults = {**self._config_entry.data, **self._config_entry.options}
     default_devices = self._normalize_device_ids(defaults.get(CONF_DEVICE_IDS, []))
     schema = vol.Schema(
         {
