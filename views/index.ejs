@@ -1,0 +1,61 @@
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card text-bg-success">
+      <div class="card-body">
+        <h5 class="card-title">Status MQTT</h5>
+        <p class="card-text" id="mqtt-status">Aguardando conexão...</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-bg-info">
+      <div class="card-body">
+        <h5 class="card-title">Control Center</h5>
+        <p class="card-text">Acesse o HiveMQ Control Center em <a href="<%= mqttControlCenter %>" target="_blank"><%= mqttControlCenter %></a></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-bg-warning">
+      <div class="card-body">
+        <h5 class="card-title">Health</h5>
+        <p class="card-text" id="health-status">Monitorando...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Publicar comando MQTT</div>
+      <div class="card-body">
+        <form id="publish-form">
+          <div class="mb-3">
+            <label class="form-label">Device</label>
+            <input class="form-control" id="device" placeholder="lampada01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Action</label>
+            <input class="form-control" id="action" placeholder="ligar" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Payload JSON</label>
+            <textarea class="form-control" id="payload" rows="3">{"value":true}</textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Enviar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Log de eventos</div>
+      <div class="card-body">
+        <pre id="event-log" class="bg-dark text-white p-3" style="height:260px; overflow:auto;"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/dashboard.js"></script>

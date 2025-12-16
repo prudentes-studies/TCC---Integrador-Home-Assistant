@@ -1,0 +1,9 @@
+{
+  "name": "Prudentes Tuya All",
+  "country": "BR",
+  "homeassistant": "2023.8.0",
+  "render_readme": true,
+  "content_in_root": false,
+  "filename": "custom_components/prudentes_tuya_all",
+  "domains": ["prudentes_tuya_all"]
+}

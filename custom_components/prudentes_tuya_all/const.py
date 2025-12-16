@@ -1,0 +1,10 @@
+DOMAIN = "prudentes_tuya_all"
+PLATFORMS = ["sensor", "switch", "number", "select", "binary_sensor"]
+CONF_ACCESS_ID = "access_id"
+CONF_ACCESS_SECRET = "access_secret"
+CONF_BASE_URL = "base_url"
+CONF_DEVICE_IDS = "device_ids"
+CONF_POLLING_INTERVAL = "polling_interval"
+CONF_REGION = "region"
+DEFAULT_BASE_URL = "https://openapi.tuyaus.com"
+DEFAULT_POLLING = 30

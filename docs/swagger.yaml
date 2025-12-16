@@ -1,0 +1,58 @@
+openapi: 3.0.1
+info:
+  title: CodeX Dashboard API
+  version: 1.0.0
+  description: API para publicação MQTT e interação opcional com Home Assistant.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Healthcheck básico
+      responses:
+        '200':
+          description: Status do servidor
+  /api/mqtt/publish:
+    post:
+      summary: Publica comando MQTT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device:
+                  type: string
+                action:
+                  type: string
+                payload:
+                  type: object
+      responses:
+        '200':
+          description: Publicação enfileirada
+  /api/ha/states:
+    get:
+      summary: Lista estados do Home Assistant
+      responses:
+        '200':
+          description: Retorna estados
+  /api/ha/service:
+    post:
+      summary: Chama serviço do Home Assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                domain:
+                  type: string
+                service:
+                  type: string
+                data:
+                  type: object
+      responses:
+        '200':
+          description: Resultado da automação
