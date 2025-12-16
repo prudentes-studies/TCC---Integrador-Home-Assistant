@@ -1,6 +1,8 @@
-localhost:8080 da internal error
+corrigir os erros:
 
-e o pacote na hora de carregar entidades agora alerta erro no log: "Registrador: aiohttp.server
+1) Docker --> localhost:8080 da internal error
+
+2) Home assistant no Pacote de integração --> o pacote na hora de carregar entidades agora alerta erro no log: "Registrador: aiohttp.server
 Fonte: /usr/local/lib/python3.13/site-packages/aiohttp/web_protocol.py:481
 Ocorreu pela primeira vez: 04:09:15 (1 ocorrência )
 Último registro: 04:09:15
