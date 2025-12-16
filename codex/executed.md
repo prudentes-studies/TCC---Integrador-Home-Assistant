@@ -1,31 +1,34 @@
 # Execução — Resumo Detalhado
 
 ## Contexto
-- Data/hora: 2025-12-16T01:30:55+00:00
+- Data/hora: 2025-12-16T04:06:38+00:00
 - Fonte: codex/request.md
-- Versão desta execução: revisão de imagens `latest` e tutoriais clique a clique
+- Versão desta execução: habilitar instalação via HACS/git e leitura dinâmica da Tuya API
 
 ## Interpretação do pedido
-- Atualizar todos os serviços e imagens Docker para sempre usarem a versão estável mais recente (tag `latest`).
-- Reescrever todos os READMEs com passos ultradetalhados, clique a clique, para subir a stack, usar o dashboard MQTT e instalar a integração Tuya no Home Assistant.
-- Registrar rastreabilidade em `codex/*` e manter documentação estruturada por funcionalidade.
+- Permitir instalar a integração sem copiar arquivos para `config/custom_components`, usando um repositório git externo (HACS).
+- Obter tipos e datapoints diretamente das APIs Tuya (shadow + specification), sem presets locais.
+- Manter tutoriais com passos clique a clique ultra detalhados e documentação estruturada por funcionalidade.
 
 ## Ações realizadas
-- Atualizados `Dockerfile` e `Dockerfile.demo` para `node:latest-alpine` conforme orientação de usar imagens mais recentes.
-- Ajustado `docker-compose.yml` para `hivemq/hivemq-ce:latest` e comentário do Node-RED para `nodered/node-red:latest`, reforçando uso de imagens estáveis atuais.
-- Reescrito `README.md` com índice navegável e tutoriais passo a passo (clonagem, `.env`, `docker compose`, validação do dashboard, habilitação de serviços opcionais, guia VirtualBox + HA e integração Tuya).
-- Reescritos `funcionalidades/mqtt-dashboard/README.md` e `funcionalidades/tuya-integration/README.md` com roteiros clique a clique para operar o dashboard MQTT e instalar/validar o custom component no HA.
-- Atualizados artefatos de rastreio: `codex/improved-prompt.md` (novo prompt autossuficiente), `codex/suggest.md` (sugestões alinhadas ao uso de `latest`), `codex/error.md` (limitações registradas) e este `codex/executed.md`.
+- Atualizado `tuya_client.py` para buscar token (`/v1.0/token`), paginar devices (`/v2.0/cloud/thing/device`), consultar detalhes e shadow, e assinar chamadas com `access_token`.
+- Revisado `coordinator.py` para descoberta automática de devices quando a lista não é fornecida e para agregar `detail`, `shadow` e `spec` por device antes de criar entidades.
+- Ajustado `config_flow.py` para aceitar campo de devices vazio, disparar descoberta via API e tratar falhas de conexão.
+- Reescritas plataformas (`sensor.py`, `switch.py`, `binary_sensor.py`, `number.py`, `select.py`) para mapear entidades conforme `functions` (writable) e `status` (read-only), usando limites/opções do schema Tuya.
+- Incluído `hacs.json` para habilitar instalação via HACS como repositório externo.
+- Atualizados `README.md` e `funcionalidades/tuya-integration/README.md` com tutoriais clique a clique para instalação via HACS, descoberta automática e validação das entidades; reforçada árvore de documentação.
+- Reescritos artefatos de rastreio em `codex/improved-prompt.md`, `codex/suggest.md`, `codex/error.md` e este resumo.
 
 ## Artefatos gerados/atualizados
-- `Dockerfile`, `Dockerfile.demo`, `docker-compose.yml` — imagens ajustadas para `latest`.
-- Documentação: `README.md`, `funcionalidades/mqtt-dashboard/README.md`, `funcionalidades/tuya-integration/README.md`.
+- Código: `custom_components/prudentes_tuya_all/*` (cliente, coordinator, fluxos, plataformas).
+- Metadados: `hacs.json`.
+- Documentação: `README.md`, `funcionalidades/tuya-integration/README.md`.
 - Rastreamento: `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md`, `codex/error.md`.
 
 ## Testes/checagens
-- Não executados testes automatizados; ações limitadas a atualização de imagens e documentação. Recomenda-se `docker compose up` e verificação manual das rotas do dashboard/HA.
+- `python -m compileall custom_components/prudentes_tuya_all` — verificação de sintaxe dos módulos Python.
 
 ## Próximos passos recomendados
-- Incluir checagens automáticas para validar disponibilidade das imagens `latest` e fallback para LTS em caso de falha.
-- Adicionar testes de fumaça (publicar/assinar MQTT, listar entidades do HA) antes de cada release.
-- Manter changelog das versões das imagens usadas para rastrear atualizações.
+- Implementar cache persistente de token e lista de devices para reduzir chamadas Tuya.
+- Adicionar testes unitários para assinatura e paginação (`last_row_key`).
+- Criar serviços HA para refresh manual de schema/discovery e emitir notificações quando não houver devices retornados.

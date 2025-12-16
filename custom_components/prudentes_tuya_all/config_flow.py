@@ -16,6 +16,7 @@ from .const import (
     DEFAULT_BASE_URL,
     DEFAULT_POLLING,
 )
+from .tuya_client import TuyaClient
 
 class TuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
   """Fluxo principal de configuração."""
@@ -25,9 +26,21 @@ class TuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
   async def async_step_user(self, user_input=None) -> FlowResult:
     errors = {}
     if user_input is not None:
-      device_ids = [item.strip() for item in user_input[CONF_DEVICE_IDS].split(',') if item.strip()]
-      user_input[CONF_DEVICE_IDS] = device_ids
-      return self.async_create_entry(title="Prudentes Tuya All", data=user_input)
+      device_raw = user_input.get(CONF_DEVICE_IDS, "")
+      device_ids = [item.strip() for item in device_raw.split(',') if item.strip()]
+      if not device_ids:
+        try:
+          client = TuyaClient(
+              user_input[CONF_ACCESS_ID], user_input[CONF_ACCESS_SECRET], user_input[CONF_BASE_URL], user_input[CONF_REGION]
+          )
+          discovery = await client.list_devices()
+          result = discovery.get("result", {}) if isinstance(discovery, dict) else {}
+          device_ids = [item.get("id") or item.get("device_id") for item in result.get("list", []) if item.get("id") or item.get("device_id")]
+        except Exception:
+          errors["base"] = "cannot_connect"
+      if not errors:
+        user_input[CONF_DEVICE_IDS] = device_ids
+        return self.async_create_entry(title="Prudentes Tuya All", data=user_input)
 
     schema = vol.Schema(
         {
@@ -35,7 +48,7 @@ class TuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_ACCESS_SECRET): str,
             vol.Optional(CONF_REGION, default="us"): str,
             vol.Optional(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
-            vol.Required(CONF_DEVICE_IDS): str,
+            vol.Optional(CONF_DEVICE_IDS, default=""): str,
             vol.Optional(CONF_POLLING_INTERVAL, default=DEFAULT_POLLING): int,
         }
     )
