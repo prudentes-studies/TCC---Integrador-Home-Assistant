@@ -1,1 +1,1 @@
-Releia todo o projeto e o adeque para que os serviços e imagens do odcker file usem sempre a ultima imagem estavel na data atual ou utilizar :latest. Melhore significamente todos os tutoriasi contidos nos READMES para que sejam um passo a passo clique por clique ultra detalhado.
+Releia todo o projeto e o adeque para que os serviços e imagens do docker file usem sempre a ultima imagem estavel na data atual ou utilizar :latest. Melhore significamente todos os tutoriasi contidos nos READMES para que sejam um passo a passo clique por clique ultra detalhado.
