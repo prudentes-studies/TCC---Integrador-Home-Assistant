@@ -1,11 +1,7 @@
-corrigir os erros:
-
-1) Docker --> localhost:8080 da internal error
-
-2) Home assistant no Pacote de integração --> o pacote na hora de carregar entidades agora alerta erro no log: "Registrador: aiohttp.server
+corrija o erro do tuya: "Registrador: aiohttp.server
 Fonte: /usr/local/lib/python3.13/site-packages/aiohttp/web_protocol.py:481
-Ocorreu pela primeira vez: 04:09:15 (1 ocorrência )
-Último registro: 04:09:15
+Ocorreu pela primeira vez: 05:57:52 (2 ocorrências )
+Último registro: 05:57:59
 
 Error handling request from 10.0.0.9
 Traceback (most recent call last):
@@ -65,7 +61,8 @@ Traceback (most recent call last):
            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
   File "/config/custom_components/prudentes_tuya_all/config_flow.py", line 62, in async_get_options_flow
     return TuyaOptionsFlowHandler(config_entry)
-  File "/config/custom_components/prudentes_tuya_all/config_flow.py", line 69, in __init__
-    self.config_entry = config_entry
-    ^^^^^^^^^^^^^^^^^
-AttributeError: property 'config_entry' of 'TuyaOptionsFlowHandler' object has no setter"
+  File "/config/custom_components/prudentes_tuya_all/config_flow.py", line 70, in __init__
+    self.hass = config_entry.hass
+                ^^^^^^^^^^^^^^^^^
+AttributeError: 'ConfigEntry' object has no attribute 'hass'"
+ corrija tambem a versao do mqtt para a latest e faca as devidas adaptacoes
