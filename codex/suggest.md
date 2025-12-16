@@ -1,22 +1,22 @@
 # Sugestões e Variações do Prompt
 
 ## Melhorias incrementais
-- Acrescentar requisito de testes automatizados (unitários e integração MQTT) antes do deploy.
-- Exigir tela de métricas (latência MQTT, taxa de mensagens) no dashboard.
-- Solicitar caching/refresh automático do token Tuya e reuso de sessão HTTP.
-- Adicionar instrução para gerar diagramas de sequência (Markdown mermaid) da troca MQTT/HA.
-- Incluir esteira CI/CD (lint + build + teste) no GitHub Actions.
+- Acrescentar checagem automática que valide se as imagens `latest` estão realmente disponíveis (ex.: `docker pull` + fallback para versão LTS mais recente).
+- Solicitar inclusão de changelog/versionamento documentando quando as imagens foram atualizadas para `latest`.
+- Pedir captura de telas do dashboard e do fluxo de integração no HA para enriquecer os tutoriais.
+- Exigir scripts de health-check no compose para garantir que HiveMQ e o app estejam prontos antes de iniciar dependências.
+- Incluir tabela comparativa entre usar `latest` e versões fixas, com riscos e recomendações para produção.
 
 ## Variações por objetivo/escopo
-- Versão *offline*: simular respostas Tuya para demos sem internet, com dataset estático.
-- Versão *hardening*: exigir TLS no broker e autenticação JWT no Node.
-- Versão *edge*: substituir HiveMQ por EMQX e incluir bridge para HA MQTT.
-- Versão *observability*: integrar Prometheus/Grafana para métricas MQTT e HA.
-- Versão *educacional*: gerar laboratório com passos guiados e quizzes para cada tópico do dashboard.
+- Versão **enterprise**: substituir HiveMQ CE por plano gerenciado e habilitar TLS/mTLS obrigatório.
+- Versão **educacional**: dividir o tutorial em módulos curtos com quiz ao final de cada seção.
+- Versão **offline**: gerar mock de MQTT e Tuya para uso em ambientes sem rede, mantendo os mesmos passos do tutorial.
+- Versão **observability**: adicionar Prometheus + Grafana com dashboards pré-configurados para MQTT e HA.
+- Versão **cloud-first**: instruir deployment em Kubernetes usando imagens `latest` e Helm charts gerados a partir do compose.
 
 ## Ajustes de risco/custo
-- Reduzir custos removendo Node-RED e publisher dedicado, trocando por scripts npm simples.
-- Minimizar risco de rate-limit Tuya ao impor backoff e cache local de estados.
-- Simplificar UI usando apenas páginas JSON/HTML minimalistas para ambientes restritos.
-- Alternativa sem Docker: scripts npm e instruções para rodar em Windows/Linux com serviços locais.
-- Rotina de validação pré-demo: checklist automático que testa portas, tokens e conectividade Tuya.
+- Para reduzir risco de quebra com `latest`, documentar um job semanal de validação e travar tags em caso de falha.
+- Para ambientes restritos, propor alternativa sem Docker usando Node.js instalado localmente e broker externo existente.
+- Sugerir geração automática de `.env` a partir de wizard interativo para evitar erros de configuração.
+- Orientar testes automatizados de fumaça (publicar/assinar MQTT, listar entidades HA) antes de cada entrega.
+- Incluir política de rollback rápido caso uma imagem `latest` apresente regressão.

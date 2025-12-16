@@ -1,19 +1,38 @@
 # Dashboard MQTT CodeX
 
 ## Objetivo
-UI CodeX/Bootstrap com backend Node.js 20 para monitorar e publicar mensagens MQTT em tópicos `tcc/demo/*`, além de expor Swagger e saúde.
+UI CodeX/Bootstrap com backend Node.js (imagens Docker `latest`) para monitorar e publicar mensagens MQTT em tópicos `tcc/demo/*`, além de expor Swagger e saúde.
 
-## Entradas
-- Variáveis de ambiente (.env) descritas na raiz.
-- Broker MQTT acessível (HiveMQ CE pelo compose).
+## Pré-requisitos rápidos
+- Stack Docker desta raiz ativa (`docker compose up -d --build`).
+- Broker MQTT acessível (o serviço `mqtt-broker` sobe HiveMQ CE automaticamente).
+- Navegador apontando para `http://localhost:3000`.
 
-## Como usar
-1. Suba a stack `docker compose up -d --build`.
-2. Acesse http://localhost:3000 e abra `/swagger` para testar as APIs.
-3. Use o formulário da home para publicar em `tcc/demo/cmd/{device}/{action}` e veja acks/logs em tempo real.
-4. Abra `/devices` para inspecionar estados do Home Assistant (se habilitado).
+## Passo a passo clique a clique (Docker)
+1. **Subir os serviços**
+   ```bash
+   docker compose up -d --build
+   docker compose ps
+   ```
+   Confirme que `mqtt-broker` e `codex-app` estão rodando.
+2. **Abrir o dashboard**
+   - Acesse `http://localhost:3000`.
+   - O painel inicial já mostra campos **Device** e **Action**.
+3. **Publicar um comando MQTT**
+   - Preencha **Device** (ex.: `lamp`) e **Action** (ex.: `on`).
+   - Clique em **Publicar**: o backend envia para `tcc/demo/cmd/{device}/{action}`.
+   - Observe na área de log SSE as confirmações em `tcc/demo/ack/{device}` e mensagens em `tcc/demo/log` (se o publisher de demo estiver ativo).
+4. **Testar via Swagger**
+   - Clique em **Swagger** no menu ou acesse `http://localhost:3000/swagger`.
+   - Expanda o endpoint de publicação MQTT, clique em **Try it out**, edite o payload e pressione **Execute**. Confira o `curl` gerado e a resposta HTTP.
+5. **Explorar o debug MQTT**
+   - Acesse a aba **MQTT Debug** no menu.
+   - Informe o **Topic** (ex.: `tcc/demo/custom`) e um **Message** JSON, clique em **Publish** e verifique o log de acks.
+6. **Visualizar estados do Home Assistant (opcional)**
+   - Garanta `ENABLE_HA=true` e um token válido no `.env`.
+   - Abra a aba **Devices** e clique em **Atualizar** para listar as entidades retornadas pelo HA.
 
-## Tópicos
+## Tópicos padrão
 - `tcc/demo/cmd/{device}/{action}`: comandos.
 - `tcc/demo/state/{device}`: estados simulados/retornados.
 - `tcc/demo/ack/{device}`: confirmações.
