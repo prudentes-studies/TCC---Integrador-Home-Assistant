@@ -1,44 +1,36 @@
 # Prompt – Versão Aprimorada
 
 ## Objetivo
-Implementar uma integração Tuya para Home Assistant que seja instalada como repositório Git externo (via HACS), eliminando cópia manual para `config/custom_components`. O código deve obter dinamicamente o schema e os tipos dos dispositivos a partir das APIs do Tuya Developer, criando entidades conforme `shadow`, `specification`, `functions` e `status`. A documentação precisa trazer tutoriais **clique a clique** extremamente detalhados e um índice navegável por funcionalidades.
+Corrigir a integração customizada `prudentes_tuya_all` do Home Assistant para que o fluxo de opções não dispare erro `AttributeError: property 'config_entry' of 'TuyaOptionsFlowHandler' object has no setter`, permitindo o carregamento correto das entidades. Documentar o procedimento de correção, possíveis causas dos avisos de desempenho (ex.: `sun.sun` demorando 0.9s) e registrar rastreabilidade completa nos artefatos `codex/*` e na documentação principal.
 
 ## Entradas
-- `codex/request.md` com o pedido original.
-- Código existente da integração em `custom_components/prudentes_tuya_all`.
-- Documentação atual em `README.md` e `funcionalidades/*/README.md`.
+- `codex/request.md` com descrição dos erros observados na UI e no log do Home Assistant.
+- Código da integração em `custom_components/prudentes_tuya_all/`, especialmente `config_flow.py`.
+- Documentação existente em `README.md` e `funcionalidades/tuya-integration/README.md`.
 
 ## Saídas (artefatos obrigatórios)
-- Integração Home Assistant preparada para instalação como repositório externo (ex.: arquivo `hacs.json`).
-- Cliente Tuya capaz de autenticar, paginar devices (`/v2.0/cloud/thing/device`) e buscar shadow/specification por device.
-- Coordenação que descobre devices automaticamente quando não informados e cria entidades com base em tipos retornados pela API.
-- Tutoriais clique a clique atualizados em `README.md` e `funcionalidades/tuya-integration/README.md`, indicando instalação via HACS e operação dinâmica.
+- Correção no fluxo de opções da integração, eliminando o `AttributeError` e garantindo normalização segura da lista de dispositivos.
+- Atualizações de documentação em `README.md` e `funcionalidades/tuya-integration/README.md` com passos de validação e troubleshooting dos erros reportados.
 - Arquivos de rastreabilidade atualizados: `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md`, `codex/error.md`.
 
 ## Passo a passo (alto nível)
-1. Ler `codex/request.md` para extrair requisitos (instalação via repositório Git externo, tutoriais ultra detalhados, leitura dinâmica da Tuya API).
-2. Ajustar cliente e coordinator para: obter token (`/v1.0/token`), paginar devices com `last_row_key`, consultar shadow/propriedades e specification para mapear tipos.
-3. Atualizar fluxos de configuração para aceitar lista vazia e disparar descoberta automática de devices.
-4. Gerar entidades (switch, binary_sensor, number, select, sensor) de acordo com `functions` (writable) e `status` (read-only) do schema retornado.
-5. Preparar repositório para instalação via HACS (ex.: `hacs.json`) e remover dependência de cópia manual.
-6. Reescrever READMEs com tutoriais clique a clique e índice navegável de funcionalidades.
-7. Registrar execução em `codex/executed.md`, sugestões em `codex/suggest.md` e limitações em `codex/error.md`.
+1. Ler `codex/request.md` e mapear os erros relatados (entidades não carregam; stack trace em `config_flow.py`; aviso de desempenho `sun.sun`).
+2. Inspecionar `config_flow.py` e ajustar o `OptionsFlow` para usar inicialização correta (`super().__init__`) e sanitizar `device_ids` tanto para defaults quanto para entrada do usuário.
+3. Rever documentação para incluir passos de atualização da integração, limpeza de cache e validações pós-correção.
+4. Registrar sugestões alternativas em `codex/suggest.md` e detalhar execução em `codex/executed.md`.
+5. Listar limitações ou itens não reproduzidos em `codex/error.md` (ex.: impossibilidade de validar no HA real nesta execução).
 
 ## Restrições e políticas
-- Linguagem: português (pt-BR) nos textos; nomes técnicos mantêm idioma original.
-- Não remover conteúdo válido; apenas atualizar/complementar.
-- Declarar limitações em `codex/error.md` se algo não puder ser executado.
+- Escrever textos em português (pt-BR), mantendo termos técnicos em inglês quando apropriado.
+- Não remover conteúdo válido; apenas complementar ou corrigir.
+- Manter rastreabilidade cruzada entre `improved-prompt`, `executed`, `suggest` e `error`.
 
 ## Critérios de aceite
-- Instalação documentada via repositório Git/HACS, sem instruir copiar para `config/custom_components`.
-- Device IDs podem ser deixados em branco e são descobertos via API com paginação `last_row_key`.
-- Entidades criadas conforme tipos retornados (`bool`, `enum/string`, `value/integer/float`) e writability (`functions` vs `status`).
-- READMEs contêm passos numerados, cliques e validações finais; índice com links para funcionalidades.
-- `codex/suggest.md` tem pelo menos 5 sugestões; `codex/executed.md` descreve ações realizadas.
+- O fluxo de opções da integração não lança mais o `AttributeError` e aceita listas de devices em branco ou string, normalizando-as corretamente.
+- Documentação principal e específica da funcionalidade contém seção de troubleshooting que explique a correção e como validar o carregamento de entidades.
+- `codex/suggest.md` traz ao menos 5 melhorias/variações relevantes ao cenário de erro e manutenção.
+- `codex/executed.md` descreve claramente o que foi feito, limitações e próximos passos.
 
 ## Validações automáticas (quando aplicável)
-- [ ] Habilitar instalação via HACS (`hacs.json` presente) e documentada.
-- [ ] Cliente Tuya obtém token e assina chamadas.
-- [ ] Coordinator busca shadow + specification e cria entidades dinâmicas.
-- [ ] READMEs incluem tutoriais clique a clique e índice navegável.
-- [ ] Arquivos `codex/*` atualizados.
+- [ ] `python -m compileall custom_components/prudentes_tuya_all` executado sem erros.
+- [ ] Verificação manual de que a opção "Configure" da integração abre sem traçar `AttributeError` e que os defaults de Device IDs são exibidos corretamente (simulada se não houver HA disponível).

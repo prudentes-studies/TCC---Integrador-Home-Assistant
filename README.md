@@ -141,3 +141,13 @@ Notas dinâmicas:
 - Acrescentar caching de token OAuth Tuya e refresh automático.
 - Acrescentar testes automatizados (jest/pytest) e pipelines CI.
 - Se o HiveMQ não subir, valide portas 1883/8080 livres; para HA, confirme IP 10.10.10.100 acessível do contêiner.
+
+### Diagnóstico de erros recentes
+- **AttributeError no fluxo de opções (`config_entry` sem setter):** atualize para este commit, reinicie o Home Assistant e abra
+  novamente **Settings > Devices & Services > Prudentes Tuya All > Configure**. O fluxo agora inicializa via `super().__init__`
+  e normaliza `Device IDs` antes de exibir os defaults.
+- **Entidades não carregam após a atualização:** em **Configure**, confirme se a lista de `Device IDs` está vazia ou separada por
+  vírgulas sem espaços extras. Salve e aguarde o próximo ciclo de polling; se persistir, remova opções salvas e reabra o fluxo
+  para forçar normalização.
+- **Aviso de performance do `sun.sun` (~0.9s):** trata-se de uma entidade nativa; monitore se o tempo cresce de forma recorrente
+  e considere abrir issue upstream apenas se o aviso for frequente. Não impacta diretamente a integração Tuya.
