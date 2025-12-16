@@ -1,6 +1,6 @@
 # Demo TCC CodeX / Home Assistant / Tuya Cloud
 
-Stack de demonstração que combina **HiveMQ CE** (broker MQTT), **dashboard CodeX/Bootstrap** com backend Node.js e a integração customizada **`prudentes_tuya_all`** do Home Assistant para expor datapoints Tuya Cloud. As imagens Docker agora usam **tags fixas** (`hivemq/hivemq-ce:latest`, `node:20-alpine`) para evitar erros de resolução como o do `node:latest-alpine` no Docker Desktop.
+Stack de demonstração que combina **HiveMQ CE** (broker MQTT), **dashboard CodeX/Bootstrap** com backend Node.js e a integração customizada **`prudentes_tuya_all`** do Home Assistant para expor datapoints Tuya Cloud. As imagens Docker agora usam **tags fixas** (`hivemq/hivemq-ce:2023.5`, `node:20-alpine`) para evitar erros de resolução como o do `node:latest-alpine` no Docker Desktop.
 
 ## Sumário rápido
 - [Arquitetura](#arquitetura)
@@ -13,10 +13,11 @@ Stack de demonstração que combina **HiveMQ CE** (broker MQTT), **dashboard Cod
 - [Tutorial Home Assistant no VirtualBox](#tutorial-home-assistant-no-virtualbox)
 - [Instalação da integração Tuya via HACS](#instalação-da-integração-tuya-via-hacs)
 - [Documentação por funcionalidade](#documentação-por-funcionalidade)
+- [Índice de documentação e referências cruzadas](#índice-de-documentação-e-referências-cruzadas)
 - [Roadmap e troubleshooting](#roadmap-e-troubleshooting)
 
 ## Arquitetura
-- **HiveMQ CE (`hivemq/hivemq-ce:latest`)** — broker MQTT nas portas 1883 (mqtt) e 8080 (Control Center).
+- **HiveMQ CE (`hivemq/hivemq-ce:2023.5`)** — broker MQTT nas portas 1883 (mqtt) e 8080 (Control Center) com tag fixa para evitar regressões recentes da UI.
 - **App Node.js (`node:20-alpine`)** — Express + SSE, publica/assina tópicos `tcc/demo/*`, expõe API REST, Swagger e UI Bootstrap.
 - **Demo publisher (`node:20-alpine`)** — publica mensagens em `tcc/demo/log` a cada 2s (ativado ajustando replicas no Compose).
 - **Integração Home Assistant** — componente `prudentes_tuya_all` que descobre devices Tuya Cloud, cria entidades dinamicamente e oferece fluxo de opções corrigido.
@@ -114,6 +115,26 @@ Workflow **CI-CD** em `.github/workflows/ci.yml` com três validações:
 - [`funcionalidades/mqtt-dashboard/README.md`](funcionalidades/mqtt-dashboard/README.md): UI CodeX/Bootstrap para MQTT, passos para publicar/assinar, uso do Swagger e healthcheck.
 - [`funcionalidades/tuya-integration/README.md`](funcionalidades/tuya-integration/README.md): instalação via HACS, descoberta automática, segredos da pipeline Tuya e troubleshooting do fluxo de opções.
 
+## Índice de documentação e referências cruzadas
+- **`README.md` (este arquivo):** visão geral da stack, pré-requisitos, comandos e troubleshooting.
+- **`funcionalidades/mqtt-dashboard/README.md`:** guia operacional do dashboard MQTT e como validar o HiveMQ Control Center.
+- **`funcionalidades/tuya-integration/README.md`:** fluxo completo da integração Tuya, incluindo o ajuste do Options Flow e logs recomendados.
+- **`codex/request.md`:** entrada original das correções solicitadas.
+- **`codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md`, `codex/error.md`:** rastreabilidade de prompt, variações, execução e limitações encontradas nesta entrega.
+- **Árvore sugerida:**
+  ```
+  README.md
+  funcionalidades/
+    mqtt-dashboard/README.md
+    tuya-integration/README.md
+  codex/
+    request.md
+    improved-prompt.md
+    suggest.md
+    executed.md
+    error.md
+  ```
+
 ### Árvore de documentação
 ```
 README.md
@@ -139,3 +160,4 @@ codex/
 - **Falha ao buildar `node:latest-alpine`**: as Dockerfiles passaram para `node:20-alpine`; execute `docker compose build --pull` para baixar a tag correta.
 - **Entidades não carregam após salvar opções**: deixe `Device IDs` vazio para descoberta automática, salve e aguarde um ciclo de polling; ative logs `custom_components.prudentes_tuya_all: debug` para inspecionar.
 - **Aviso de performance do `sun.sun` (~0.9s)**: entidade nativa; monitore recorrência e avalie abertura de issue upstream se o atraso aumentar.
+- **Control Center do HiveMQ em `localhost:8080` retornando "Internal Error"**: utilize a tag fixa `hivemq/hivemq-ce:2023.5`, rode `docker compose pull mqtt-broker && docker compose up -d mqtt-broker` e aguarde 15–20s até o dashboard inicializar; se permanecer o erro, valide conflitos de porta 8080 ou rode `docker compose logs mqtt-broker` para inspecionar.

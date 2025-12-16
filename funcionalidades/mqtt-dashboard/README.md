@@ -14,7 +14,7 @@ UI CodeX/Bootstrap com backend Node.js (imagens Docker `latest`) para monitorar 
    docker compose up -d --build
    docker compose ps
    ```
-   Confirme que `mqtt-broker` e `codex-app` estão rodando.
+   Confirme que `mqtt-broker` e `codex-app` estão rodando. O broker usa a tag `hivemq/hivemq-ce:2023.5` para manter o Control Center estável.
 2. **Abrir o dashboard**
    - Acesse `http://localhost:3000`.
    - O painel inicial já mostra campos **Device** e **Action**.
@@ -31,6 +31,11 @@ UI CodeX/Bootstrap com backend Node.js (imagens Docker `latest`) para monitorar 
 6. **Visualizar estados do Home Assistant (opcional)**
    - Garanta `ENABLE_HA=true` e um token válido no `.env`.
    - Abra a aba **Devices** e clique em **Atualizar** para listar as entidades retornadas pelo HA.
+
+## Troubleshooting rápido do HiveMQ Control Center (8080)
+- Se `http://localhost:8080` mostrar "Internal Error", execute `docker compose pull mqtt-broker` seguido de `docker compose up -d mqtt-broker` e aguarde até 20 segundos para a UI inicializar.
+- Verifique conflitos de porta 8080 no host e, se necessário, altere o mapeamento para outra porta livre (ex.: `- "8081:8080"`).
+- Consulte `docker compose logs mqtt-broker` para conferir mensagens de erro antes de reabrir a página.
 
 ## Tópicos padrão
 - `tcc/demo/cmd/{device}/{action}`: comandos.
