@@ -1,10 +1,9 @@
-corrigir os erros:
+localhost:8080 da internal error
 
-1) novamente não conseguiu pegar as entidades com o mesmo errro 500 e o log abaixo
-"Registrador: aiohttp.server
+e o pacote na hora de carregar entidades agora alerta erro no log: "Registrador: aiohttp.server
 Fonte: /usr/local/lib/python3.13/site-packages/aiohttp/web_protocol.py:481
-Ocorreu pela primeira vez: 03:21:30 (1 ocorrência )
-Último registro: 03:21:30
+Ocorreu pela primeira vez: 04:09:15 (1 ocorrência )
+Último registro: 04:09:15
 
 Error handling request from 10.0.0.9
 Traceback (most recent call last):
@@ -64,54 +63,7 @@ Traceback (most recent call last):
            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
   File "/config/custom_components/prudentes_tuya_all/config_flow.py", line 62, in async_get_options_flow
     return TuyaOptionsFlowHandler(config_entry)
-  File "/config/custom_components/prudentes_tuya_all/config_flow.py", line 67, in __init__
-    super().__init__(config_entry)
-    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
-TypeError: object.__init__() takes exactly one argument (the instance to initialize)"
-
-2) O docker compose não subiu, segue o log:
-   "PS C:\Users\mprud\OneDrive - Prudentes\Documents\Pessoal\GitHub\prudentes-studies\TCC---Integrador-Home-Assistant> docker compose up -d --build      
-time="2025-12-16T03:16:20-03:00" level=warning msg="C:\\Users\\mprud\\OneDrive - Prudentes\\Documents\\Pessoal\\GitHub\\prudentes-studies\\TCC---Integrador-Home-Assistant\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
-[+] Running 7/7
- ✔ mqtt-broker Pulled                                                                                                                         133.5s 
-   ✔ 4b3ffd8ccb52 Pull complete                                                                                                                99.1s 
-   ✔ 3ab3da5da257 Pull complete                                                                                                               110.6s 
-   ✔ 8908794a351c Pull complete                                                                                                               120.2s 
-   ✔ d8db6d83f4b1 Pull complete                                                                                                               120.4s 
-   ✔ 9fc3096c0eb2 Pull complete                                                                                                               121.2s 
-   ✔ ced9857c96d3 Pull complete                                                                                                               125.9s 
-[+] Building 7.4s (5/5) FINISHED
- => [internal] load local bake definitions                                                                                                      0.8s
- => => reading from stdin 1.41kB                                                                                                                0.8s
- => [app internal] load build definition from Dockerfile                                                                                        0.2s
- => => transferring dockerfile: 207B                                                                                                            0.1s 
- => [demo-publisher internal] load build definition from Dockerfile.demo                                                                        0.2s 
- => => transferring dockerfile: 316B                                                                                                            0.1s
- => ERROR [app internal] load metadata for docker.io/library/node:latest-alpine                                                                 3.7s 
- => [auth] library/node:pull token for registry-1.docker.io                                                                                     0.0s
-------
- > [app internal] load metadata for docker.io/library/node:latest-alpine:
-------
-WARNING: current commit information was not captured by the build: git was not found in the system: exec: "git.exe": executable file not found in %PATH%
-
-WARNING: current commit information was not captured by the build: git was not found in the system: exec: "git.exe": executable file not found in %PATH%
-
-Dockerfile:1
-
---------------------
-
-   1 | >>> FROM node:latest-alpine
-
-   2 |     WORKDIR /usr/src/app
-
-   3 |     ENV NODE_ENV=production
-
---------------------
-
-target app: failed to solve: node:latest-alpine: failed to resolve source metadata for docker.io/library/node:latest-alpine: docker.io/library/node:latest-alpine: not found
-
-
-
-View build details: docker-desktop://dashboard/build/default/default/9t3lku9r7i8dwgp7lylgyox3o"
-
-3) Crie uma esteira de CD/CI para testar tudo, principalmente a busca automatica das entidades e para isso me oriente a criar variáveis em meu repositório para lhe passar os Access Id, Access Secret e região para que você posssa realizar os testes.
+  File "/config/custom_components/prudentes_tuya_all/config_flow.py", line 69, in __init__
+    self.config_entry = config_entry
+    ^^^^^^^^^^^^^^^^^
+AttributeError: property 'config_entry' of 'TuyaOptionsFlowHandler' object has no setter"
