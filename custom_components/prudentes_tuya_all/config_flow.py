@@ -64,7 +64,15 @@ class TuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class TuyaOptionsFlowHandler(config_entries.OptionsFlow):
   def __init__(self, config_entry):
-    self.config_entry = config_entry
+    super().__init__(config_entry)
+
+  @staticmethod
+  def _normalize_device_ids(value):
+    if isinstance(value, str):
+      return [item.strip() for item in value.split(',') if item.strip()]
+    if isinstance(value, list):
+      return [str(item).strip() for item in value if str(item).strip()]
+    return []
 
   async def async_step_init(self, user_input=None):
     return await self.async_step_options(user_input)
@@ -77,9 +85,10 @@ class TuyaOptionsFlowHandler(config_entries.OptionsFlow):
       return self.async_create_entry(title="Opções", data=user_input)
 
     defaults = {**self.config_entry.data, **self.config_entry.options}
+    default_devices = self._normalize_device_ids(defaults.get(CONF_DEVICE_IDS, []))
     schema = vol.Schema(
         {
-            vol.Optional(CONF_DEVICE_IDS, default=','.join(defaults.get(CONF_DEVICE_IDS, []))): str,
+            vol.Optional(CONF_DEVICE_IDS, default=','.join(default_devices)): str,
             vol.Optional(CONF_POLLING_INTERVAL, default=defaults.get(CONF_POLLING_INTERVAL, DEFAULT_POLLING)): int,
         }
     )

@@ -2,5 +2,6 @@
 
 | ID | Tipo | Descrição curta | Causa raiz | Efeito | Workaround/Plano | Status |
 |----|------|-----------------|-----------|--------|------------------|--------|
-| E1 | Limitação | APIs Tuya não exercitadas end-to-end | Ambiente offline/sem credenciais reais durante a execução | Fluxo de descoberta e assinatura não foi validado contra a nuvem Tuya | Testar com credenciais do Tuya Developer em ambiente de HA real; habilitar logs debug do `TuyaClient` | Aberto |
-| E2 | Limitação | Testes automatizados ausentes para as novas entidades dinâmicas | Foco na implementação e documentação; sem suíte de testes configurada | Possível regressão não detectada em mapeamento de tipos/envio de comandos | Implementar pytest/unittest cobrindo assinatura, paginação e criação de entidades | Aberto |
+| E1 | Limitação | Correção não validada em HA real/HACS | Ambiente de execução sem instância do Home Assistant para abrir o fluxo de opções | Não foi possível comprovar in loco a eliminação do `AttributeError` ou o carregamento das entidades | Aplicar o patch em um HA de testes, abrir **Configure** e verificar ausência de stack trace; ativar logs debug se necessário | Aberto |
+| E2 | Limitação | Aviso de performance `sun.sun` não reproduzido | Falta de ambiente com entidade `sun.sun` ativa para medir tempo de atualização | Não há confirmação se o aviso persiste após correções; pode ser ruído isolado | Monitorar logs após atualização e abrir issue upstream se recorrente | Aberto |
+| E3 | Limitação | Testes automatizados ausentes para o fluxo de opções | Não há suíte configurada cobrindo inicialização/normalização | Possíveis regressões futuras sem detecção imediata | Implementar testes unitários/pytest para o OptionsFlow | Aberto |
