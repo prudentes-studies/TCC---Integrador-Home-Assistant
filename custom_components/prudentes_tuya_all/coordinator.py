@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN, DEFAULT_POLLING, CONF_DEVICE_IDS
+from .discovery import discover_device_entities, discover_project_devices
 
 
 class TuyaCoordinator(DataUpdateCoordinator):
@@ -26,32 +27,20 @@ class TuyaCoordinator(DataUpdateCoordinator):
     )
 
   async def _async_update_data(self):
-    devices = self.entry.options.get(CONF_DEVICE_IDS, self.entry.data.get(CONF_DEVICE_IDS, []))
-    if not devices:
-      devices = await self._autodiscover_devices()
-      await self._persist_device_list(devices)
-    results = {}
-    for device_id in devices:
-      detail = await self.client.get_device_detail(device_id)
-      spec = await self.client.get_specification(device_id)
-      shadow = await self.client.get_device_shadow(device_id)
-      results[device_id] = {"detail": detail, "shadow": shadow, "spec": spec}
-    return results
+    device_ids = self.entry.options.get(CONF_DEVICE_IDS, self.entry.data.get(CONF_DEVICE_IDS, []))
+    discovered = []
+    if not device_ids:
+      discovered = await discover_project_devices(self.client)
+      device_ids = [item["deviceId"] for item in discovered]
+      await self._persist_device_list(device_ids)
 
-  async def _autodiscover_devices(self):
-    devices = []
-    last_id = None
-    while True:
-      response = await self.client.list_devices(last_id=last_id)
-      result = response.get("result", {}) if isinstance(response, dict) else {}
-      for item in result.get("list", []):
-        device_id = item.get("id") or item.get("device_id")
-        if device_id:
-          devices.append(device_id)
-      last_id = result.get("last_row_key") or result.get("last_id")
-      if not last_id:
-        break
-    return devices
+    results = {}
+    for device_id in device_ids:
+      base = next((d for d in discovered if d["deviceId"] == device_id), {"deviceId": device_id})
+      discovery = await discover_device_entities(self.client, base)
+      shadow = await self.client.get_device_shadow(device_id)
+      results[device_id] = {**discovery, "shadow": shadow}
+    return results
 
   async def _persist_device_list(self, devices):
     if not devices or devices == self._known_devices:

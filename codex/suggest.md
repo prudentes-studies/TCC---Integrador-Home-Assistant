@@ -1,19 +1,19 @@
 # Sugestões e Variações do Prompt
 
 ## Melhorias incrementais
-- Incluir um checklist explícito para validar o Options Flow após atualizar dependências do Home Assistant, garantindo que atributos privados não sejam acessados diretamente.
-- Pedir confirmação da versão da biblioteca `mqtt` com `npm view mqtt version` e registro no README de quando a dependência for atualizada.
-- Acrescentar cenário de teste para o Options Flow simulando `config_entry.options` preenchido para garantir normalização dos `device_ids`.
-- Registrar no prompt um passo de verificação de conflitos de portas (8080/1883) antes de iniciar o Docker e ao atualizar o broker.
-- Solicitar que `README.md` inclua exemplos de `docker compose` usando portas alternativas para ambientes com restrição corporativa.
+- Incluir validação automática do JSON gerado (`artifacts/tuya-entities-map.json`) contra um schema para evitar campos ausentes ou tipos incorretos.
+- Pedir logging estruturado (requestId, deviceId, rota) e máscara de `client_secret` em todos os níveis de debug.
+- Solicitar que o comando de discovery aceite filtro por `category`/`productId` para rodadas rápidas de teste.
+- Acrescentar requisito para fallback quando `/model` retornar erro: continuar com specifications/status e registrar aviso.
+- Exigir que o pipeline salve estatísticas agregadas (média de entidades por device, quantos ro vs rw) no console e no artefato.
 
 ## Variações por objetivo/escopo
-- Focar apenas em documentação: gerar guias passo a passo para subir a stack e coletar evidências sem modificar código.
-- Priorizar automação: criar scripts de healthcheck (MQTT e HA) e integrá-los ao CI em vez de alterar manualmente compose/config_flow.
-- Orientar migração: substituir HiveMQ por Mosquitto + Web UI e ajustar o dashboard para novo broker.
-- Tornar o prompt prescritivo para testes: exigir execução de `python -m compileall` e `npm run lint` com saída anexada.
+- Versão focada em Home Assistant: produzir também YAML de entities simuladas para importação manual no HA.
+- Versão focada em CI: rodar discovery em modo "dry run" com fixtures e snapshots para evitar dependência de segredos.
+- Versão enxuta: apenas normalizar `dpId/dp_id` e `values` em um serviço independente, sem CLI.
+- Versão exploratória: exportar heurísticas em formato explicável (feature importance) e permitir ajuste via arquivo de regras.
 
 ## Ajustes de risco/custo
-- Oferecer opção de simulação quando o ambiente não suporta Docker, detalhando como validar as rotas manualmente.
-- Prever rollback: instruir a manter a tag anterior do HiveMQ como fallback (`hivemq/hivemq-ce:latest`) caso a versão fixada não esteja disponível no registry local.
-- Solicitar checkpoints intermediários (commits/PRs) para cada correção (Docker e integração) reduzindo risco de regressão cruzada.
+- Adicionar opção `--max-devices` no CLI para limitar consumo de API em ambientes com rate limit agressivo.
+- Prever reexecução parcial reusando cache de devices/status para evitar hitting constante do token endpoint.
+- Incluir instrução para rodar testes offline usando mocks de HTTP client quando o acesso à Tuya Cloud estiver bloqueado.
