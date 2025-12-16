@@ -3,13 +3,22 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Tuple
+
+from .localtuya_knowledge import LocalTuyaKnowledge
+
 
 def _safe_get(result: Any, key: str, default=None):
   if isinstance(result, dict):
     return result.get(key, default)
   return default
+
+
+def _result(payload: Any) -> Any:
+  if isinstance(payload, dict):
+    return payload.get("result", payload)
+  return payload
 
 
 def normalize_dp_type(raw_type: str | None) -> str:
@@ -28,13 +37,14 @@ def normalize_dp_type(raw_type: str | None) -> str:
       "array": "array",
       "double": "double",
       "float": "float",
-      "json": "struct",
+      "json": "json",
+      "integer": "value",
   }
   return aliases.get(lowered, lowered)
 
 
 def parse_values(values: Any) -> Tuple[Any, Dict[str, Any]]:
-  if not values:
+  if values is None:
     return values, {}
   if isinstance(values, dict):
     return json.dumps(values), values
@@ -47,23 +57,8 @@ def parse_values(values: Any) -> Tuple[Any, Dict[str, Any]]:
   return values, {}
 
 
-def parse_model(result: Dict[str, Any]) -> Dict[str, Any]:
-  raw_model = result.get("model") if isinstance(result, dict) else None
-  if isinstance(raw_model, dict):
-    return raw_model
-  if isinstance(raw_model, str):
-    try:
-      return json.loads(raw_model)
-    except Exception:
-      return {}
-  return {}
-
-
 def _status_map(status_payload: Any) -> Dict[str, Any]:
-  if isinstance(status_payload, dict):
-    payload = status_payload.get("result", status_payload)
-  else:
-    payload = status_payload
+  payload = _result(status_payload)
   if isinstance(payload, list):
     return {item.get("code"): item.get("value") for item in payload if isinstance(item, dict) and item.get("code")}
   if isinstance(payload, dict):
@@ -71,14 +66,26 @@ def _status_map(status_payload: Any) -> Dict[str, Any]:
   return {}
 
 
-def merge_sources(specification: Any, model: Any, status: Any) -> List[Dict[str, Any]]:
-  spec_result = _safe_get(specification, "result", {})
-  model_result = parse_model(_safe_get(model, "result", {}))
-  status_values = _status_map(_safe_get(status, "result", status))
+def parse_value_schema(values: Dict[str, Any]) -> Dict[str, Any]:
+  if not isinstance(values, dict):
+    return {}
+  parsed: Dict[str, Any] = {}
+  for key in ("range", "min", "max", "step", "scale", "unit"):
+    if key in values:
+      parsed[key] = values.get(key)
+  if "enum" in values:
+    parsed["range"] = values.get("enum")
+  return parsed
+
+
+def merge_spec_and_shadow(specification: Any, shadow: Any) -> Tuple[str | None, List[Dict[str, Any]]]:
+  spec_result = _result(specification) or {}
+  category = spec_result.get("category")
+  status_values = _status_map(shadow)
 
   mapping: Dict[str, Dict[str, Any]] = {}
 
-  for item in spec_result.get("status", []):
+  for item in spec_result.get("status", []) if isinstance(spec_result, dict) else []:
     code = item.get("code")
     if not code:
       continue
@@ -88,11 +95,12 @@ def merge_sources(specification: Any, model: Any, status: Any) -> List[Dict[str,
         "dpId": item.get("dp_id") or item.get("dpId"),
         "dpType": normalize_dp_type(item.get("type")),
         "valuesRaw": values_raw,
-        "typeSpec": values,
+        "typeSpec": {**parse_value_schema(values)},
+        "name": item.get("name"),
         "access": {"read": True, "write": False, "accessMode": "ro"},
     }
 
-  for item in spec_result.get("functions", []):
+  for item in spec_result.get("functions", []) if isinstance(spec_result, dict) else []:
     code = item.get("code")
     if not code:
       continue
@@ -104,88 +112,88 @@ def merge_sources(specification: Any, model: Any, status: Any) -> List[Dict[str,
         "dpId": current.get("dpId") or item.get("dp_id") or item.get("dpId"),
         "dpType": normalize_dp_type(item.get("type") or current.get("dpType")),
         "valuesRaw": values_raw or current.get("valuesRaw"),
-        "typeSpec": values or current.get("typeSpec", {}),
+        "typeSpec": {**current.get("typeSpec", {}), **parse_value_schema(values)},
+        "name": item.get("name") or current.get("name"),
         "access": {"read": True, "write": True, "accessMode": "rw"},
     }
 
-  for service in model_result.get("services", []) if isinstance(model_result, dict) else []:
-    for prop in service.get("properties", []):
-      code = prop.get("code")
-      if not code:
-        continue
-      current = mapping.get(code, {"dpCode": code})
-      type_spec = prop.get("typeSpec") or {}
-      mapping[code] = {
-          **current,
-          "dpCode": code,
-          "dpId": current.get("dpId"),
-          "dpType": normalize_dp_type(type_spec.get("type") or prop.get("type")),
-          "typeSpec": type_spec or current.get("typeSpec", {}),
-          "abilityId": prop.get("abilityId"),
-          "access": _merge_access(current.get("access"), prop.get("accessMode")),
-      }
-
   for code, value in status_values.items():
-    current = mapping.get(code, {"dpCode": code, "access": {"read": True, "write": False, "accessMode": "ro"}})
-    mapping[code] = {**current, "currentValue": value}
+    current = mapping.get(code, {"dpCode": code})
+    mapping[code] = {**current, "dpCode": code, "currentValue": value}
 
-  entities = []
-  for code, item in mapping.items():
-    entity_type, confidence, reason = classify_entity(code, item)
+  entities: List[Dict[str, Any]] = []
+  for detail in mapping.values():
     entities.append({
-        **item,
-        "entityType": entity_type,
-        "confidence": confidence,
-        "reason": reason,
+        **detail,
+        "dpId": detail.get("dpId"),
+        "dpCode": detail.get("dpCode"),
+        "dpType": detail.get("dpType", "unknown"),
+        "typeSpec": detail.get("typeSpec", {}),
+        "currentValue": detail.get("currentValue"),
+        "access": detail.get("access", {"read": True, "write": False, "accessMode": "ro"}),
     })
-  return entities
+  return category, entities
 
 
-def _merge_access(existing: Dict[str, Any] | None, access_mode: str | None) -> Dict[str, Any]:
-  base = existing or {"read": True, "write": False, "accessMode": "ro"}
-  if not access_mode:
-    return base
-  mode = access_mode.lower()
-  return {
-      "read": "r" in mode,
-      "write": ("w" in mode and ("rw" in mode or mode == "wr")) or mode == "rw",
-      "accessMode": mode,
-  }
+def _feature_hints(code_l: str) -> List[str]:
+  hints: List[str] = []
+  if "bright" in code_l:
+    hints.append("brightness")
+  if "temp" in code_l:
+    hints.append("color_temp")
+  if "colour_data" in code_l or "color_data" in code_l:
+    hints.append("hs_color")
+  if "scene_data" in code_l:
+    hints.append("effect")
+  if "work_mode" in code_l:
+    hints.append("preset_mode")
+  if "countdown" in code_l:
+    hints.append("timer")
+  return hints
 
 
-def classify_entity(code: str, detail: Dict[str, Any]) -> Tuple[str, float, str]:
+def classify_entity(code: str, detail: Dict[str, Any], category: str | None, knowledge: LocalTuyaKnowledge) -> Tuple[str, float, List[str]]:
   dp_type = detail.get("dpType", "").lower()
   type_spec = detail.get("typeSpec", {}) if isinstance(detail.get("typeSpec"), dict) else {}
   access = detail.get("access", {}) if isinstance(detail.get("access"), dict) else {}
-  code_l = code.lower()
+  code_l = (code or "").lower()
+  reason: List[str] = []
+  suggestions = knowledge.platforms_for_dp(category, code)
+  if suggestions:
+    suggested_platform = suggestions[0]["platform"]
+    reason.append(f"Mapeado via hass-localtuya ({suggestions[0]['entity'].get('name', '')})")
+    return suggested_platform, 0.8, reason
 
-  rules: List[Tuple[str, float, str]] = []
-  if any(prefix in code_l for prefix in ("bright", "colour", "color", "temp")):
-    rules.append(("light", 0.72, "DP indica ajuste de brilho/cor"))
-  if code_l.startswith("switch") or "relay" in code_l:
-    rules.append(("switch", 0.65, "DP inicia com switch/relay"))
-  if "percent" in code_l or code_l in {"position", "control"}:
-    rules.append(("cover", 0.55, "Possui controle percentual/posição"))
+  if any(prefix in code_l for prefix in ("switch", "relay", "outlet")):
+    return "switch", 0.7, ["Código contém switch/relay/outlet"]
+  if code_l == "work_mode" or "work_mode" in code_l:
+    return "select", 0.55, ["Enum de modo de operação"]
+  if any(sub in code_l for sub in ("bright", "brightness")):
+    return "light", 0.72, ["Ajuste de brilho identificado"]
+  if any(sub in code_l for sub in ("temp_value", "colour_temp", "color_temp")):
+    return "light", 0.7, ["Controle de temperatura de cor"]
+  if "colour_data" in code_l or "color_data" in code_l:
+    return "light", 0.75, ["Dados de cor encontrados"]
+  if "scene_data" in code_l:
+    return "light", 0.6, ["Cena/efeito detectado"]
+  if "countdown" in code_l:
+    return "number", 0.5, ["Contador regressivo"]
+  if any(key in code_l for key in ("temp", "humidity", "co2", "pm25", "voc", "battery")):
+    return "sensor", 0.7, ["Sensor ambiental identificado"]
   if "fan" in code_l or "speed" in code_l:
-    rules.append(("fan", 0.6, "Contém fan/speed"))
-  if any(key in code_l for key in ("temp", "mode", "work_mode")) and "set" in code_l:
-    rules.append(("climate", 0.62, "Combina temperatura e modo"))
-  if any(key in code_l for key in ("current_temp", "humidity", "pm25", "co2", "battery", "pir", "illum")):
-    rules.append(("sensor", 0.68, "Código típico de leitura ambiente"))
+    return "fan", 0.6, ["Velocidade/ventilador"]
+  if "percent" in code_l or code_l in {"position", "control"}:
+    return "cover", 0.55, ["Controle percentual/posição"]
+  if any(key in code_l for key in ("current_temp", "temperature")) and not access.get("write", True):
+    return "sensor", 0.4, ["Leitura de temperatura somente leitura"]
   if dp_type in {"value", "float", "double"}:
-    rules.append(("number", 0.4, "Tipo numérico com min/max"))
+    return "number", 0.4, ["DP numérico"]
   if dp_type == "enum" and type_spec.get("range"):
-    rules.append(("select", 0.45, "Enum com opções"))
-  if not access.get("write", True) and access.get("read"):
-    rules.append(("sensor", 0.35, "Apenas leitura"))
-
-  if rules:
-    best = max(rules, key=lambda item: item[1])
-    return best
-  return "unknown", 0.15, "Sem heurística aplicada"
+    return "select", 0.45, ["Enum com opções"]
+  return "unknown", 0.15, ["Sem heurística aplicada"]
 
 
-async def discover_project_devices(client, page_size: int = 20) -> List[Dict[str, Any]]:
+async def discover_project_devices(client, page_size: int = 200) -> List[Dict[str, Any]]:
   devices: List[Dict[str, Any]] = []
   last_id = None
   while True:
@@ -198,43 +206,84 @@ async def discover_project_devices(client, page_size: int = 20) -> List[Dict[str
             "deviceId": device_id,
             "name": item.get("name") or item.get("customName"),
             "category": item.get("category"),
-            "productId": item.get("productId"),
-            "isOnline": item.get("isOnline"),
+            "productId": item.get("product_id") or item.get("productId"),
+            "online": item.get("online") if "online" in item else item.get("isOnline"),
             "raw": item,
         })
     last_id = result.get("last_row_key") or result.get("last_id")
-    if not last_id:
+    if not result.get("has_more") and not last_id:
       break
   return devices
 
 
-async def discover_device_entities(client, device: Dict[str, Any]) -> Dict[str, Any]:
+async def discover_device_entities(client, device: Dict[str, Any], knowledge: LocalTuyaKnowledge) -> Dict[str, Any]:
   device_id = device["deviceId"]
   spec_task = asyncio.create_task(client.get_specification(device_id))
-  model_task = asyncio.create_task(client.get_model(device_id))
-  status_task = asyncio.create_task(client.get_status(device_id))
-  detail_task = asyncio.create_task(client.get_device_detail(device_id))
+  shadow_task = asyncio.create_task(client.get_device_shadow(device_id))
 
   spec = await spec_task
-  model = await model_task
-  status = await status_task
-  detail = await detail_task
+  shadow = await shadow_task
 
-  entities = merge_sources(spec, model, status)
+  category, merged = merge_spec_and_shadow(spec, shadow)
+  dp_codes = [item.get("dpCode") for item in merged]
+  combos = knowledge.combos_for_device(category or device.get("category"), dp_codes)
+
+  entities: List[Dict[str, Any]] = []
+  for dp in merged:
+    code = dp.get("dpCode") or ""
+    entity_type, confidence, reason = classify_entity(code, dp, category or device.get("category"), knowledge)
+    entity_id = f"{device_id}__{code or dp.get('dpId')}"
+    features = _feature_hints(code.lower())
+    for combo in combos:
+      if code in combo.get("dp_codes", []) and combo.get("platform") == entity_type:
+        features.append("combo:" + ",".join(combo.get("dp_codes", [])))
+    entities.append({
+        "entity_id": entity_id,
+        "dp_id": dp.get("dpId"),
+        "dp_code": code,
+        "tuya_type": dp.get("dpType", "unknown"),
+        "current_value": dp.get("currentValue"),
+        "spec": {
+            "name": dp.get("name"),
+            "type": dp.get("dpType"),
+            **dp.get("typeSpec", {}),
+            "values": dp.get("valuesRaw"),
+        },
+        "ha": {
+            "suggested_platform": entity_type,
+            "suggested_device_class": None,
+            "suggested_unit_of_measurement": dp.get("typeSpec", {}).get("unit"),
+            "features": sorted(set(features)),
+            "confidence": confidence,
+            "reason": reason,
+        },
+    })
+
   return {
       **device,
+      "category": category or device.get("category"),
       "entities": entities,
       "spec": spec,
-      "model": model,
-      "status": status,
-      "detail": detail,
+      "shadow": shadow,
   }
 
 
+async def fetch_categories(client) -> Dict[str, str]:
+  response = await client.get_device_categories()
+  result = _result(response)
+  mapping: Dict[str, str] = {}
+  for item in result.get("list", []) if isinstance(result, dict) else []:
+    code = item.get("category") or item.get("code")
+    name = item.get("name") or item.get("category_name")
+    if code:
+      mapping[code] = name or ""
+  return mapping
+
+
 async def discover_all_entities(client, include_sub_devices: bool = True, concurrency: int = 3) -> Dict[str, Any]:
+  knowledge = LocalTuyaKnowledge()
+  categories = await fetch_categories(client)
   devices = await discover_project_devices(client)
-  if include_sub_devices:
-    devices = await _maybe_include_sub_devices(client, devices)
 
   sem = asyncio.Semaphore(concurrency)
   results: List[Dict[str, Any]] = []
@@ -243,45 +292,26 @@ async def discover_all_entities(client, include_sub_devices: bool = True, concur
   async def _run(device: Dict[str, Any]):
     async with sem:
       try:
-        results.append(await discover_device_entities(client, device))
+        enriched = await discover_device_entities(client, device, knowledge)
+        code = enriched.get("category")
+        enriched["category_name"] = categories.get(code)
+        results.append(enriched)
       except Exception as exc:  # noqa: BLE001 - queremos capturar qualquer falha de rede/API
         errors.append({"deviceId": device["deviceId"], "error": str(exc)})
 
   await asyncio.gather(*[_run(device) for device in devices])
 
   return {
-      "generatedAt": datetime.utcnow().isoformat() + "Z",
-      "project": {"region": getattr(client, "region", None), "clientId": client.access_id},
+      "generatedAt": datetime.now(timezone.utc).isoformat(),
+      "project": {
+          "source_type": "tuya_cloud",
+          "source_id": client.access_id,
+          "region": getattr(client, "region", None),
+      },
+      "categories": categories,
       "devices": results,
       "errors": errors,
   }
-
-
-async def _maybe_include_sub_devices(client, devices: List[Dict[str, Any]]):
-  seen = {device["deviceId"] for device in devices}
-  enriched = list(devices)
-  for device in list(devices):
-    detail = device.get("raw", {})
-    if detail.get("sub") or detail.get("is_sub"):
-      continue
-    try:
-      subs = await client.get_sub_devices(device["deviceId"])
-    except Exception:
-      continue
-    result = _safe_get(subs, "result", {})
-    for item in result.get("list", []) if isinstance(result, dict) else []:
-      sub_id = item.get("id") or item.get("device_id")
-      if sub_id and sub_id not in seen:
-        seen.add(sub_id)
-        enriched.append({
-            "deviceId": sub_id,
-            "name": item.get("name") or item.get("customName"),
-            "category": item.get("category"),
-            "productId": item.get("productId"),
-            "isOnline": item.get("isOnline"),
-            "raw": item,
-        })
-  return enriched
 
 
 def summarize(devices: Iterable[Dict[str, Any]]) -> Dict[str, Any]:

@@ -8,6 +8,7 @@ Stack de demonstração que combina **HiveMQ CE** (broker MQTT), **dashboard Cod
 - [Guia clique a clique para subir a stack Docker](#guia-clique-a-clique-para-subir-a-stack-docker)
 - [Execução local sem Docker](#execução-local-sem-docker)
 - [Variáveis de ambiente e segredos](#variáveis-de-ambiente-e-segredos)
+- [Mapa de documentação e referências cruzadas](#mapa-de-documentação-e-referências-cruzadas)
 - [CI/CD](#cicd)
 - [Dashboard CodeX](#dashboard-codex)
 - [Tutorial Home Assistant no VirtualBox](#tutorial-home-assistant-no-virtualbox)
@@ -73,9 +74,23 @@ npm start
 | HA_TOKEN | Long-lived token do Home Assistant | `.env` / compose |
 | ENABLE_HA | `true` para habilitar chamadas ao HA | `.env` / compose |
 | DEMO_PUBLISHER_ENABLED | Reservado; prefira o serviço `demo-publisher` | `.env` |
-| TUYA_ACCESS_ID/SECRET/REGION/BASE_URL | Segredos usados pelo passo de descoberta automática no CI e pelo comando `npm run tuya:discover` | Segredos do repositório / variáveis locais |
+| TUYA_CLIENT_ID / TUYA_CLIENT_SECRET | Credenciais Tuya OpenAPI (fallback: `TUYA_ACCESS_ID`/`TUYA_ACCESS_SECRET`) | Segredos do repositório / variáveis locais |
+| TUYA_REGION | Região (`us`, `eu`, `in`, `cn`) usada para compor o host da API | Segredos / variáveis |
+| TUYA_BASE_URL | Host base (padrão `https://openapi.tuyaus.com`) | Segredos / variáveis |
 | TUYA_CONCURRENCY | Limite de dispositivos processados em paralelo no discovery | Variáveis locais |
 | TUYA_INCLUDE_SUB | `true/false` para incluir sub-devices no discovery | Variáveis locais |
+
+## Mapa de documentação e referências cruzadas
+- **Este README** — visão geral da stack, operações e troubleshooting.
+- **`codex/request.md` / `codex/improved-prompt.md`** — prompt original e versão reescrita pronta para uso.
+- **`codex/executed.md` / `codex/error.md` / `codex/suggest.md`** — trilha de execução, erros e variações sugeridas.
+- **`funcionalidades/mqtt-dashboard/README.md`** — instruções da UI MQTT/CodeX.
+- **`funcionalidades/tuya-integration/README.md`** — operação detalhada da integração `prudentes_tuya_all` e fluxo HACS.
+- **`custom_components/prudentes_tuya_all/data/localtuya_mappings.json`** — conhecimento extraído do hass-localtuya usado pelo classificador.
+- **Scripts auxiliares**:
+  - `scripts/tuya_discover.py` — discovery completo e export JSON (`output/tuya_inventory.json`).
+  - `scripts/extract_localtuya_mappings.py` — reexporta o conhecimento do hass-localtuya para o JSON acima.
+
 
 ## CI/CD
 Workflow **CI-CD** em `.github/workflows/ci.yml` com três validações:
@@ -116,20 +131,25 @@ Workflow **CI-CD** em `.github/workflows/ci.yml` com três validações:
 6. Valide em **Entities**: switches/binary_sensors para `bool`, numbers para `value/integer/float`, selects para `enum/string`, sensores para demais datapoints e sensor `diagnostic` com atributos de schema.
 
 ## Discovery completo Tuya via CLI
-1. Garanta `python` disponível e exporte as variáveis:
+1. Garanta `python` disponível e exporte as variáveis principais:
    ```bash
-   export TUYA_ACCESS_ID=...
-   export TUYA_ACCESS_SECRET=...
+   export TUYA_CLIENT_ID=...
+   export TUYA_CLIENT_SECRET=...
    export TUYA_REGION=us  # ou eu/in/cn
-   # opcionais: TUYA_BASE_URL, TUYA_CONCURRENCY (padrão 3), TUYA_INCLUDE_SUB=false
+   python scripts/tuya_discover.py
    ```
-2. Execute o discovery assíncrono com controle de concorrência e retry para 429/5xx:
+2. Parâmetros opcionais:
+   - `TUYA_BASE_URL` (padrão `https://openapi.tuyaus.com`).
+   - `TUYA_CONCURRENCY` (padrão 3) para controlar quantos devices são processados em paralelo.
+   - `TUYA_INCLUDE_SUB=false` para ignorar sub-devices/gateways.
+3. Artefatos gerados:
+   - `output/tuya_inventory.json` com `generatedAt`, `project` (source_type/source_id/region), `categories` (código → nome), lista completa de devices (online e offline) e entidades mescladas de **specification + shadow** com `dpCode`, `dpId`, `dpType`, `typeSpec`, `currentValue`, classificação `ha` (plataforma sugerida, features, confidence e reasons) e erros por device.
+   - O classificador cruza regras heurísticas (switch/relay/outlet, brilho/temperatura/colour_data/scene_data, countdown, sensores ambientais) com o conhecimento exportado do **hass-localtuya** (`custom_components/prudentes_tuya_all/data/localtuya_mappings.json`).
+4. Regerar conhecimento localtuya (opcional):
    ```bash
-   npm run tuya:discover
+   python scripts/extract_localtuya_mappings.py
    ```
-3. Saída:
-   - JSON consolidado em `artifacts/tuya-entities-map.json` com `generatedAt`, `project` (clientId mascarado/região), lista completa de devices (incluindo sub-devices) e entidades mescladas de **specifications + model + status** com `dpCode`, `dpId`, `dpType`, `typeSpec`, `access`, `currentValue`, `entityType`, `confidence` e `reason`.
-   - Log no console com totais de devices/entidades e eventuais erros por device.
+   O script cria/atualiza `localtuya_mappings.json` lendo o vendor `hass_localtuya` incluso em `custom_components/prudentes_tuya_all/vendor/`.
 
 ## Documentação por funcionalidade
 - [`funcionalidades/mqtt-dashboard/README.md`](funcionalidades/mqtt-dashboard/README.md): UI CodeX/Bootstrap para MQTT, passos para publicar/assinar, uso do Swagger e healthcheck.
