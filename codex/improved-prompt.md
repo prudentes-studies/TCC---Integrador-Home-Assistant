@@ -1,39 +1,45 @@
 # Prompt – Versão Aprimorada
 
 ## Objetivo
-Corrigir os problemas apontados em `codex/request.md`: (1) o Options Flow da integração `prudentes_tuya_all` dispara `AttributeError: 'ConfigEntry' object has no attribute 'hass'` ao abrir **Configure** no Home Assistant; (2) a biblioteca `mqtt` usada pelo dashboard Node.js deve ser atualizada para a versão mais recente, com ajustes de código e documentação. Entregar correções de código/configuração, documentação revisada e registros completos nos arquivos `codex/*`.
+Implementar a descoberta completa de entidades (DPs) do Tuya Development Cloud conforme `codex/request.md`, sem depender do status online dos devices. O trabalho deve consolidar as respostas das APIs de devices, specifications, model e status em um pipeline único, classificar automaticamente o tipo de entidade (switch/light/cover/fan/climate/sensor/select/number/button/scene/unknown) com score e justificativa e exportar o resultado em JSON executável via CLI.
 
 ## Entradas
-- `codex/request.md` com o stack trace do `AttributeError: 'ConfigEntry' object has no attribute 'hass'` e o pedido de atualizar a biblioteca `mqtt` para a versão mais recente.
-- Código do componente Home Assistant em `custom_components/prudentes_tuya_all/` (especialmente `config_flow.py`).
-- Código Node.js em `src/mqtt.js` e `src/server.js`, além do manifesto `package.json` (onde a dependência `mqtt` é declarada).
-- Documentação existente em `README.md` e em `funcionalidades/*/README.md`.
+- `codex/request.md` com o problema de discovery incompleto e as rotas REST que devem ser usadas.
+- Código da integração Home Assistant em `custom_components/prudentes_tuya_all/` (especialmente `tuya_client.py`, `coordinator.py`, `helpers.py` e entidades).
+- Scripts utilitários em `scripts/` e documentação em `README.md` e `funcionalidades/tuya-integration/README.md`.
 
 ## Saídas (artefatos obrigatórios)
-- Ajuste em `config_flow.py` eliminando o `AttributeError` ao abrir o fluxo de opções do Home Assistant.
-- Atualização do `package.json` para usar a versão mais recente de `mqtt` e adaptações necessárias em `src/mqtt.js` para garantir compatibilidade.
-- Atualização dos READMEs (raiz e funcionalidades) com as novidades do MQTT atualizado e o troubleshooting do Options Flow Tuya, mantendo índice navegável e árvore de documentação.
-- Registros consistentes em `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md` e `codex/error.md`.
+- Pipeline de descoberta com funções `discoverProjectDevices`, `discoverDeviceEntities`, merge de fontes (specifications + model + status) e classificação de `entityType`, reutilizando o cliente HTTP existente.
+- CLI ou comando (ex.: `npm run tuya:discover`) que gera `./artifacts/tuya-entities-map.json` com devices → entidades contendo dpCode, dpId, dpType, typeSpec normalizado, access (ro/rw/wr), currentValue, entityType, confidence e reason.
+- Limite de concorrência e retry/backoff para 429/5xx nas chamadas; suporte a paginação (`last_row_key`) e inclusão opcional de sub-devices.
+- Testes unitários (fixtures/mocks) cobrindo paginação, merge de `dpId/dp_id`, parse do `model` (string JSON) e heurísticas de classificação.
+- Documentação atualizada no `README.md` e em `funcionalidades/tuya-integration/README.md` explicando como executar o discovery, variáveis necessárias, formato do JSON e índice navegável.
+- Registros em `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md` e `codex/error.md` refletindo decisões, sugestões e limitações.
 
 ## Passo a passo (alto nível)
-1. Ler `codex/request.md` e identificar os erros solicitados.
-2. Corrigir `custom_components/prudentes_tuya_all/config_flow.py` para usar atributos compatíveis com o Options Flow atual (sem acessar `config_entry.hass`).
-3. Atualizar `package.json` para a versão mais recente de `mqtt` e ajustar `src/mqtt.js` para explicitar a negociação de protocolo com o broker.
-4. Revisar e enriquecer `README.md` e `funcionalidades/*/README.md` com árvore de documentação, referências cruzadas e orientações de troubleshooting do Options Flow e do MQTT atualizado.
-5. Preencher `codex/suggest.md` com variações e melhorias; `codex/executed.md` com o que foi feito; `codex/error.md` com limitações encontradas.
+1. Ler `codex/request.md` e mapear requisitos, rotas e critérios de aceite.
+2. Inspecionar o cliente Tuya existente e centralizar as chamadas exigidas (/v2.0/cloud/thing/device, /v1.1/devices/{id}/specifications, /v2.0/cloud/thing/{id}/model, /v1.0/iot-03/devices/{id}/status, sub-devices opcional).
+3. Implementar o pipeline de discovery com paginação, merge por dpCode e normalização de dpId/typeSpec/values (mesmo quando vierem como string JSON), preenchendo currentValue e accessMode.
+4. Criar heurísticas de classificação (switch/light/cover/fan/climate/sensor/select/number/button/scene/unknown) com confidence e reason, usando dpCode, categoria e typeSpec.
+5. Expor comando/CLI que executa o discovery, aplica concorrência/retry e salva o JSON final em `artifacts/tuya-entities-map.json`, além de logar um resumo no console.
+6. Adicionar testes unitários para paginação, merge/normalização, parse do model e classificação; documentar como rodá-los.
+7. Atualizar READMEs com instruções de uso, variáveis `TUYA_*`, árvore de documentação e links para a funcionalidade.
+8. Registrar execução, sugestões e eventuais limitações em `codex/executed.md`, `codex/suggest.md` e `codex/error.md`.
 
 ## Restrições e políticas
-- Escrever em português (pt-BR), preservando termos técnicos em inglês quando necessário.
+- Manter idioma em português (pt-BR), preservando termos técnicos em inglês quando necessário.
 - Não remover conteúdos válidos; apenas complementar ou corrigir mantendo rastreabilidade.
-- Garantir que os arquivos `codex/*` reflitam decisões, ações e limitações desta execução.
+- Reaproveitar padrões de logging, autenticação e cliente HTTP existentes no repositório.
+- Mascarar segredos/client_secret em logs e artefatos.
 
 ## Critérios de aceite
-- Fluxo de opções do Home Assistant abre sem `AttributeError` para `config_entry`.
-- Dependência `mqtt` atualizada para a versão mais recente, com código compatível e documentação refletindo a mudança.
-- READMEs atualizados com índice, árvore de documentação e troubleshooting dos problemas relatados.
-- `codex/suggest.md` contém pelo menos 5 sugestões; `codex/executed.md` descreve ações e verificações; `codex/error.md` lista limitações (incluindo impossibilidade de testes Docker neste ambiente).
+- O comando/fluxo de discovery lista todos os devices via `/v2.0/cloud/thing/device` com paginação e inclui sub-devices quando habilitado.
+- Para cada device, as entidades combinam dpId/dpCode (specifications), typeSpec/accessMode (model) e currentValue (status), independentemente do device estar online.
+- O JSON consolidado é gerado em `./artifacts/tuya-entities-map.json` e o console traz totais e erros por device.
+- Heurísticas de `entityType` retornam `confidence` e `reason` coerentes; testes unitários cobrem paginação, merge e classificação.
+- Documentação atualizada com índice/árvore e instruções de execução; registros `codex/*` preenchidos.
 
 ## Validações automáticas (quando aplicável)
-- [ ] `python -m compileall custom_components/prudentes_tuya_all`
+- [ ] `npm run tuya:discover` (quando segredos TUYA_* estiverem disponíveis)
+- [ ] `npm run test:python`
 - [ ] `npm run lint`
-- [ ] Build opcional do Docker (`docker compose build`), quando disponível

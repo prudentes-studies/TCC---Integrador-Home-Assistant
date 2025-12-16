@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "dev": "NODE_ENV=development nodemon src/server.js",
     "lint": "node --check src/server.js src/ha.js src/mqtt.js scripts/demoPublisher.js",
-    "test": "npm run lint"
+    "test": "npm run lint",
+    "tuya:discover": "python scripts/tuya_discover.py",
+    "test:python": "python -m unittest discover tests"
   },
   "keywords": ["mqtt", "home-assistant", "dashboard", "tcc"],
   "author": "",

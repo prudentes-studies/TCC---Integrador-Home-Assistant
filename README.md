@@ -12,6 +12,7 @@ Stack de demonstração que combina **HiveMQ CE** (broker MQTT), **dashboard Cod
 - [Dashboard CodeX](#dashboard-codex)
 - [Tutorial Home Assistant no VirtualBox](#tutorial-home-assistant-no-virtualbox)
 - [Instalação da integração Tuya via HACS](#instalação-da-integração-tuya-via-hacs)
+- [Discovery completo Tuya via CLI](#discovery-completo-tuya-via-cli)
 - [Documentação por funcionalidade](#documentação-por-funcionalidade)
 - [Índice de documentação e referências cruzadas](#índice-de-documentação-e-referências-cruzadas)
 - [Roadmap e troubleshooting](#roadmap-e-troubleshooting)
@@ -72,13 +73,16 @@ npm start
 | HA_TOKEN | Long-lived token do Home Assistant | `.env` / compose |
 | ENABLE_HA | `true` para habilitar chamadas ao HA | `.env` / compose |
 | DEMO_PUBLISHER_ENABLED | Reservado; prefira o serviço `demo-publisher` | `.env` |
-| TUYA_ACCESS_ID/SECRET/REGION/BASE_URL | Segredos usados pelo passo de descoberta automática no CI | Segredos do repositório |
+| TUYA_ACCESS_ID/SECRET/REGION/BASE_URL | Segredos usados pelo passo de descoberta automática no CI e pelo comando `npm run tuya:discover` | Segredos do repositório / variáveis locais |
+| TUYA_CONCURRENCY | Limite de dispositivos processados em paralelo no discovery | Variáveis locais |
+| TUYA_INCLUDE_SUB | `true/false` para incluir sub-devices no discovery | Variáveis locais |
 
 ## CI/CD
 Workflow **CI-CD** em `.github/workflows/ci.yml` com três validações:
 - **Lint Node.js**: `npm ci` + `npm run lint` (checagem de sintaxe de `src/*.js` e `scripts/demoPublisher.js`).
 - **Integração HA**: instala `aiohttp`, roda `python -m compileall custom_components/prudentes_tuya_all` e executa `scripts/ci_tuya_discovery.py` quando os segredos `TUYA_ACCESS_ID`, `TUYA_ACCESS_SECRET`, `TUYA_REGION` (e opcional `TUYA_BASE_URL`) estiverem configurados.
 - **Docker smoke build**: `docker build` para a imagem principal e o publisher demo, garantindo que a tag `node:20-alpine` é resolvida.
+- **Testes locais recomendados**: `npm run test:python` roda `unittest` com fixtures/mocks para paginação, parse do modelo (`model` string) e heurísticas de classificação de entidades Tuya.
 
 ### Como configurar segredos para a descoberta Tuya
 1. No GitHub, acesse **Settings > Secrets and variables > Actions**.
@@ -110,6 +114,22 @@ Workflow **CI-CD** em `.github/workflows/ci.yml` com três validações:
 4. Crie a integração em **Devices & Services > Add Integration** informando credenciais Tuya; deixe **Device IDs** vazio para descoberta via `/v2.0/cloud/thing/device` (pagina usando `last_row_key`).
 5. Em **Configure**, ajuste o **intervalo de polling** e, se desejar, limite `Device IDs`; vazio = descoberta contínua.
 6. Valide em **Entities**: switches/binary_sensors para `bool`, numbers para `value/integer/float`, selects para `enum/string`, sensores para demais datapoints e sensor `diagnostic` com atributos de schema.
+
+## Discovery completo Tuya via CLI
+1. Garanta `python` disponível e exporte as variáveis:
+   ```bash
+   export TUYA_ACCESS_ID=...
+   export TUYA_ACCESS_SECRET=...
+   export TUYA_REGION=us  # ou eu/in/cn
+   # opcionais: TUYA_BASE_URL, TUYA_CONCURRENCY (padrão 3), TUYA_INCLUDE_SUB=false
+   ```
+2. Execute o discovery assíncrono com controle de concorrência e retry para 429/5xx:
+   ```bash
+   npm run tuya:discover
+   ```
+3. Saída:
+   - JSON consolidado em `artifacts/tuya-entities-map.json` com `generatedAt`, `project` (clientId mascarado/região), lista completa de devices (incluindo sub-devices) e entidades mescladas de **specifications + model + status** com `dpCode`, `dpId`, `dpType`, `typeSpec`, `access`, `currentValue`, `entityType`, `confidence` e `reason`.
+   - Log no console com totais de devices/entidades e eventuais erros por device.
 
 ## Documentação por funcionalidade
 - [`funcionalidades/mqtt-dashboard/README.md`](funcionalidades/mqtt-dashboard/README.md): UI CodeX/Bootstrap para MQTT, passos para publicar/assinar, uso do Swagger e healthcheck.
@@ -150,9 +170,9 @@ codex/
 ```
 
 ## Roadmap e troubleshooting
-- Melhorar detecção de *writable* vs *read-only* ao mapear `bool` para switch/binary_sensor usando o schema Tuya.
-- Cache de token e refresh automático no `TuyaClient`.
-- Testes automatizados (jest/pytest) adicionais e cobertura do fluxo de opções.
+- Persistir cache de token/refresh automático no `TuyaClient` para reduzir churn de autenticação.
+- Aprimorar heurísticas de classificação usando `abilityId`, categoria e composição de múltiplos DPs (ex.: clima/cover complexos).
+- Ampliar testes automatizados (jest/pytest) para envio de comandos Tuya e para o fluxo de Options Flow no Home Assistant.
 - Se HiveMQ não subir, valide portas 1883/8080 livres; para HA, confirme IP 10.10.10.100 acessível do contêiner.
 
 ### Diagnóstico de erros recentes
