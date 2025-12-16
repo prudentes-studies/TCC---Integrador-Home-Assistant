@@ -42,3 +42,11 @@ Expor todos os datapoints Tuya Cloud via Home Assistant de forma **100% dinâmic
 - Cache persistente de tokens para reduzir chamadas de autenticação.
 - Suporte a filtros por categoria/room ao paginar dispositivos.
 - Testes automatizados para validar mapeamento de tipos (`bool`, `enum`, `value`) e envio de comandos.
+
+## Troubleshooting específico desta correção
+- **Erro `AttributeError: property 'config_entry' ... has no setter` ao abrir Configure:** garanta que a pasta `custom_components`
+  contém esta versão atualizada. Reinicie o Home Assistant e reabra **Configure**; o `OptionsFlow` agora é inicializado via `super().__init__`.
+- **Device IDs exibidos como caracteres soltos:** o fluxo normaliza qualquer string separada por vírgulas antes de salvar. Reabra
+  **Configure**, ajuste a lista (ex.: `id1,id2,id3`) e salve.
+- **Entidades não aparecem após salvar opções:** deixe `Device IDs` vazio para redescoberta automática, confirme o intervalo de
+  polling e acompanhe os logs (`custom_components.prudentes_tuya_all: debug`) para verificar se devices foram carregados.

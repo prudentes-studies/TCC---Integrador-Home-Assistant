@@ -1,34 +1,31 @@
 # Execução — Resumo Detalhado
 
 ## Contexto
-- Data/hora: 2025-12-16T04:06:38+00:00
+- Data/hora: 2025-12-16T05:47:47+00:00
 - Fonte: codex/request.md
-- Versão desta execução: habilitar instalação via HACS/git e leitura dinâmica da Tuya API
+- Versão desta execução: correção do fluxo de opções e documentação de troubleshooting
 
 ## Interpretação do pedido
-- Permitir instalar a integração sem copiar arquivos para `config/custom_components`, usando um repositório git externo (HACS).
-- Obter tipos e datapoints diretamente das APIs Tuya (shadow + specification), sem presets locais.
-- Manter tutoriais com passos clique a clique ultra detalhados e documentação estruturada por funcionalidade.
+- Entidades da integração não carregam e o log exibe `AttributeError` relacionado a `TuyaOptionsFlowHandler.config_entry`.
+- Há avisos secundários no log (ex.: lentidão do `sun.sun`) que precisam ser comentados na documentação.
+- É necessário registrar rastreabilidade nos arquivos `codex/*` e atualizar os READMEs com orientações claras.
 
 ## Ações realizadas
-- Atualizado `tuya_client.py` para buscar token (`/v1.0/token`), paginar devices (`/v2.0/cloud/thing/device`), consultar detalhes e shadow, e assinar chamadas com `access_token`.
-- Revisado `coordinator.py` para descoberta automática de devices quando a lista não é fornecida e para agregar `detail`, `shadow` e `spec` por device antes de criar entidades.
-- Ajustado `config_flow.py` para aceitar campo de devices vazio, disparar descoberta via API e tratar falhas de conexão.
-- Reescritas plataformas (`sensor.py`, `switch.py`, `binary_sensor.py`, `number.py`, `select.py`) para mapear entidades conforme `functions` (writable) e `status` (read-only), usando limites/opções do schema Tuya.
-- Incluído `hacs.json` para habilitar instalação via HACS como repositório externo.
-- Atualizados `README.md` e `funcionalidades/tuya-integration/README.md` com tutoriais clique a clique para instalação via HACS, descoberta automática e validação das entidades; reforçada árvore de documentação.
-- Reescritos artefatos de rastreio em `codex/improved-prompt.md`, `codex/suggest.md`, `codex/error.md` e este resumo.
+- Corrigido `custom_components/prudentes_tuya_all/config_flow.py` para inicializar o `OptionsFlow` via `super().__init__` e adicionar normalização defensiva de `device_ids`, evitando o `AttributeError` e defaults inconsistentes.
+- Atualizado `README.md` com seção dedicada a diagnóstico recente, incluindo instruções para reabrir o fluxo de opções e interpretações do aviso `sun.sun` lento.
+- Atualizado `funcionalidades/tuya-integration/README.md` com troubleshooting específico desta correção (reinstalação, normalização de IDs e revalidação de entidades).
+- Reescritos `codex/improved-prompt.md` e `codex/suggest.md` alinhando-os ao cenário atual e incluindo novas sugestões focadas em estabilidade do fluxo de opções.
 
 ## Artefatos gerados/atualizados
-- Código: `custom_components/prudentes_tuya_all/*` (cliente, coordinator, fluxos, plataformas).
-- Metadados: `hacs.json`.
-- Documentação: `README.md`, `funcionalidades/tuya-integration/README.md`.
-- Rastreamento: `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md`, `codex/error.md`.
+- `custom_components/prudentes_tuya_all/config_flow.py` — correção do OptionsFlow e normalização de Device IDs.
+- `README.md` — diagnóstico de erros recentes e orientação sobre o aviso `sun.sun`.
+- `funcionalidades/tuya-integration/README.md` — troubleshooting específico pós-correção.
+- `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md` — rastreabilidade desta execução.
 
 ## Testes/checagens
-- `python -m compileall custom_components/prudentes_tuya_all` — verificação de sintaxe dos módulos Python.
+- `python -m compileall custom_components/prudentes_tuya_all` — validação de sintaxe dos módulos Python.
 
 ## Próximos passos recomendados
-- Implementar cache persistente de token e lista de devices para reduzir chamadas Tuya.
-- Adicionar testes unitários para assinatura e paginação (`last_row_key`).
-- Criar serviços HA para refresh manual de schema/discovery e emitir notificações quando não houver devices retornados.
+- Validar a correção em uma instância real do Home Assistant, abrindo **Configure** e salvando opções para garantir ausência de `AttributeError`.
+- Adicionar testes unitários para o fluxo de opções (inicialização, normalização e persistência dos IDs).
+- Monitorar logs após a atualização para confirmar se o aviso de desempenho do `sun.sun` permanece esporádico ou precisa ser levado ao projeto upstream.
