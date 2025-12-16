@@ -64,7 +64,10 @@ class TuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class TuyaOptionsFlowHandler(config_entries.OptionsFlow):
   def __init__(self, config_entry):
-    super().__init__(config_entry)
+    # A OptionsFlow do Home Assistant não espera argumentos em __init__;
+    # armazenamos manualmente para evitar TypeError e manter o contexto.
+    self.config_entry = config_entry
+    self.hass = config_entry.hass
 
   @staticmethod
   def _normalize_device_ids(value):

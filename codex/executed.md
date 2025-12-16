@@ -1,31 +1,39 @@
 # Execução — Resumo Detalhado
 
 ## Contexto
-- Data/hora: 2025-12-16T05:47:47+00:00
-- Fonte: codex/request.md
-- Versão desta execução: correção do fluxo de opções e documentação de troubleshooting
+- Data/hora: 2025-12-16T00:00:00Z
+- Fonte: `codex/request.md`
+- Versão desta execução: correção do Options Flow, build Docker e esteira CI/CD
 
 ## Interpretação do pedido
-- Entidades da integração não carregam e o log exibe `AttributeError` relacionado a `TuyaOptionsFlowHandler.config_entry`.
-- Há avisos secundários no log (ex.: lentidão do `sun.sun`) que precisam ser comentados na documentação.
-- É necessário registrar rastreabilidade nos arquivos `codex/*` e atualizar os READMEs com orientações claras.
+- O Options Flow da integração `prudentes_tuya_all` retornava erro 500 com `TypeError: object.__init__() takes exactly one argument` ao tentar abrir/editar opções.
+- O `docker compose up -d --build` falhou no host do usuário ao resolver `node:latest-alpine`.
+- Foi solicitada uma esteira CI/CD que teste a busca automática das entidades Tuya, com orientação sobre variáveis/secrets para Access ID/Secret/Região.
 
 ## Ações realizadas
-- Corrigido `custom_components/prudentes_tuya_all/config_flow.py` para inicializar o `OptionsFlow` via `super().__init__` e adicionar normalização defensiva de `device_ids`, evitando o `AttributeError` e defaults inconsistentes.
-- Atualizado `README.md` com seção dedicada a diagnóstico recente, incluindo instruções para reabrir o fluxo de opções e interpretações do aviso `sun.sun` lento.
-- Atualizado `funcionalidades/tuya-integration/README.md` com troubleshooting específico desta correção (reinstalação, normalização de IDs e revalidação de entidades).
-- Reescritos `codex/improved-prompt.md` e `codex/suggest.md` alinhando-os ao cenário atual e incluindo novas sugestões focadas em estabilidade do fluxo de opções.
+- Ajustado `TuyaOptionsFlowHandler` para armazenar `config_entry` e `hass` manualmente, evitando a chamada indevida a `super().__init__` e consequentemente o `TypeError` no Options Flow.
+- Atualizados `Dockerfile` e `Dockerfile.demo` para `node:20-alpine` e removido `version` obsoleto do `docker-compose.yml`, eliminando a falha de metadata do `node:latest-alpine` e o warning do Compose.
+- Criado workflow `CI-CD` com jobs de lint Node, `compileall` do componente e teste opcional de descoberta Tuya (`scripts/ci_tuya_discovery.py`) quando os segredos `TUYA_*` estão presentes; incluído smoke build das imagens Docker.
+- Incluído script `scripts/ci_tuya_discovery.py` que lista devices da Tuya Cloud apenas quando os segredos são fornecidos, retornando contagem e falhando em caso de resposta inesperada.
+- Revisados `README.md` e `funcionalidades/tuya-integration/README.md` com árvore de documentação, detalhes da pipeline, segredos necessários, mudanças de imagem Docker e troubleshooting dos erros relatados.
+- Atualizados `codex/improved-prompt.md` e `codex/suggest.md` para refletir o novo escopo, e `codex/error.md` para registrar limitações de validação prática.
 
 ## Artefatos gerados/atualizados
-- `custom_components/prudentes_tuya_all/config_flow.py` — correção do OptionsFlow e normalização de Device IDs.
-- `README.md` — diagnóstico de erros recentes e orientação sobre o aviso `sun.sun`.
-- `funcionalidades/tuya-integration/README.md` — troubleshooting específico pós-correção.
-- `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md` — rastreabilidade desta execução.
+- `custom_components/prudentes_tuya_all/config_flow.py` — Options Flow corrigido sem chamada indevida ao `__init__` da classe base.
+- `Dockerfile` e `Dockerfile.demo` — base `node:20-alpine` alinhada ao `package.json`.
+- `docker-compose.yml` — remoção do atributo `version` obsoleto.
+- `.github/workflows/ci.yml` — pipeline CI/CD com lint, compileall, descoberta Tuya opcional e builds Docker.
+- `scripts/ci_tuya_discovery.py` — script de validação opcional da API Tuya.
+- `package.json` — scripts `lint` e `test` para uso no CI.
+- Documentação: `README.md`, `funcionalidades/tuya-integration/README.md`.
+- Rastreabilidade: `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md`, `codex/error.md`.
 
 ## Testes/checagens
-- `python -m compileall custom_components/prudentes_tuya_all` — validação de sintaxe dos módulos Python.
+- `python -m compileall custom_components/prudentes_tuya_all`
+- `npm run lint`
 
 ## Próximos passos recomendados
-- Validar a correção em uma instância real do Home Assistant, abrindo **Configure** e salvando opções para garantir ausência de `AttributeError`.
-- Adicionar testes unitários para o fluxo de opções (inicialização, normalização e persistência dos IDs).
-- Monitorar logs após a atualização para confirmar se o aviso de desempenho do `sun.sun` permanece esporádico ou precisa ser levado ao projeto upstream.
+- Executar a nova pipeline no GitHub com segredos `TUYA_*` preenchidos para validar a descoberta real de devices.
+- Rodar o Home Assistant com a integração atualizada, abrir **Configure** e salvar opções para confirmar ausência do erro 500.
+- Adicionar testes automatizados específicos para o Options Flow e para o cliente Tuya (mocks ou ambiente de staging).
+- Estender a pipeline com lint Python (`ruff`/`flake8`) e smoke test MQTT end-to-end.

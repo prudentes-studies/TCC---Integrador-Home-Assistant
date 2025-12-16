@@ -9,6 +9,10 @@ Expor todos os datapoints Tuya Cloud via Home Assistant de forma **100% dinâmic
 - Credenciais do Tuya Developer Cloud: `Access ID`, `Access Secret`, `Base URL` (ex.: `https://openapi.tuyaus.com`) e `Região` (`us`, `eu`, `in`, `cn`).
 - Conexão de rede do HA com a internet.
 
+### Segredos para CI/CD
+- Crie no GitHub os segredos `TUYA_ACCESS_ID`, `TUYA_ACCESS_SECRET`, `TUYA_REGION` e, opcionalmente, `TUYA_BASE_URL`.
+- O workflow `CI-CD` executa `scripts/ci_tuya_discovery.py`, que só lista dispositivos quando todos os segredos estão presentes.
+
 ## Passo a passo clique a clique — instalação via HACS
 1. **Adicionar este repositório no HACS**
    - Em **HACS > Integrations**, clique no menu de três pontinhos (**⋮**) e escolha **Custom repositories**.
@@ -43,10 +47,9 @@ Expor todos os datapoints Tuya Cloud via Home Assistant de forma **100% dinâmic
 - Suporte a filtros por categoria/room ao paginar dispositivos.
 - Testes automatizados para validar mapeamento de tipos (`bool`, `enum`, `value`) e envio de comandos.
 
-## Troubleshooting específico desta correção
-- **Erro `AttributeError: property 'config_entry' ... has no setter` ao abrir Configure:** garanta que a pasta `custom_components`
-  contém esta versão atualizada. Reinicie o Home Assistant e reabra **Configure**; o `OptionsFlow` agora é inicializado via `super().__init__`.
-- **Device IDs exibidos como caracteres soltos:** o fluxo normaliza qualquer string separada por vírgulas antes de salvar. Reabra
-  **Configure**, ajuste a lista (ex.: `id1,id2,id3`) e salve.
-- **Entidades não aparecem após salvar opções:** deixe `Device IDs` vazio para redescoberta automática, confirme o intervalo de
-  polling e acompanhe os logs (`custom_components.prudentes_tuya_all: debug`) para verificar se devices foram carregados.
+## Troubleshooting específico desta versão
+- **Erro 500 / `TypeError: object.__init__() takes exactly one argument` ao abrir Configure:** garanta que a pasta `custom_components` contém esta versão, que inicializa o `OptionsFlow` sem chamar `super().__init__` com parâmetros. Reinicie o Home Assistant e reabra **Configure**.
+- **Device IDs exibidos como caracteres soltos:** o fluxo normaliza qualquer string separada por vírgulas antes de salvar. Reabra **Configure**, ajuste a lista (ex.: `id1,id2,id3`) e salve.
+- **Entidades não aparecem após salvar opções:** deixe `Device IDs` vazio para redescoberta automática, confirme o intervalo de polling e acompanhe os logs (`custom_components.prudentes_tuya_all: debug`) para verificar se devices foram carregados.
+- **Descoberta automática não retornou IDs no CI:** preencha os segredos `TUYA_*` no repositório. Sem segredos, o passo `scripts/ci_tuya_discovery.py` é ignorado e não há validação externa.
+- **Falha de build da imagem Node no Docker Desktop (erro de metadata do `node:latest-alpine`):** execute `docker compose build --pull` após atualizar a tag para `node:20-alpine` e confirme que o daemon está autenticado no Docker Hub.
