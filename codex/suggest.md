@@ -1,11 +1,11 @@
 # Sugestões e Variações do Prompt
 
 ## Melhorias incrementais
-- Incluir um checklist explícito para validar o acesso ao HiveMQ Control Center (status HTTP 200 e carregamento do bundle JS) após subir o compose.
+- Incluir um checklist explícito para validar o Options Flow após atualizar dependências do Home Assistant, garantindo que atributos privados não sejam acessados diretamente.
+- Pedir confirmação da versão da biblioteca `mqtt` com `npm view mqtt version` e registro no README de quando a dependência for atualizada.
 - Acrescentar cenário de teste para o Options Flow simulando `config_entry.options` preenchido para garantir normalização dos `device_ids`.
-- Registrar no prompt um passo de verificação de conflitos de portas (8080/1883) antes de iniciar o Docker.
+- Registrar no prompt um passo de verificação de conflitos de portas (8080/1883) antes de iniciar o Docker e ao atualizar o broker.
 - Solicitar que `README.md` inclua exemplos de `docker compose` usando portas alternativas para ambientes com restrição corporativa.
-- Pedir captura de logs do Home Assistant no momento do erro para enriquecer o troubleshooting.
 
 ## Variações por objetivo/escopo
 - Focar apenas em documentação: gerar guias passo a passo para subir a stack e coletar evidências sem modificar código.

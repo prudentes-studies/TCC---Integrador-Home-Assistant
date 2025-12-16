@@ -18,7 +18,7 @@ Stack de demonstração que combina **HiveMQ CE** (broker MQTT), **dashboard Cod
 
 ## Arquitetura
 - **HiveMQ CE (`hivemq/hivemq-ce:2023.5`)** — broker MQTT nas portas 1883 (mqtt) e 8080 (Control Center) com tag fixa para evitar regressões recentes da UI.
-- **App Node.js (`node:20-alpine`)** — Express + SSE, publica/assina tópicos `tcc/demo/*`, expõe API REST, Swagger e UI Bootstrap.
+- **App Node.js (`node:20-alpine`)** — Express + SSE, publica/assina tópicos `tcc/demo/*` usando `mqtt` 5.14.1 (protocolo MQTT v5), expõe API REST, Swagger e UI Bootstrap.
 - **Demo publisher (`node:20-alpine`)** — publica mensagens em `tcc/demo/log` a cada 2s (ativado ajustando replicas no Compose).
 - **Integração Home Assistant** — componente `prudentes_tuya_all` que descobre devices Tuya Cloud, cria entidades dinamicamente e oferece fluxo de opções corrigido.
 - **Opcional** — container Node-RED (comentado) para cenários sem add-on interno.
@@ -156,7 +156,8 @@ codex/
 - Se HiveMQ não subir, valide portas 1883/8080 livres; para HA, confirme IP 10.10.10.100 acessível do contêiner.
 
 ### Diagnóstico de erros recentes
-- **Erro 500 / `TypeError: object.__init__() takes exactly one argument` ao abrir Configure**: a classe `TuyaOptionsFlowHandler` agora armazena `config_entry` manualmente (sem `super().__init__` com parâmetros). Atualize a integração, reinicie o HA e reabra **Configure**.
+- **Erro ao abrir Configure — `AttributeError: 'ConfigEntry' object has no attribute 'hass'`**: atualize a integração `prudentes_tuya_all` para a versão corrigida que evita ler `config_entry.hass` dentro do Options Flow. Reinicie o Home Assistant e reabra **Configure**.
+- **Dependência MQTT desatualizada**: se o dashboard não conectar ao broker, execute `npm install` após confirmar que `package.json` está em `mqtt@^5.14.1` e reinicie o serviço para negociar protocolo v5 com o HiveMQ.
 - **Falha ao buildar `node:latest-alpine`**: as Dockerfiles passaram para `node:20-alpine`; execute `docker compose build --pull` para baixar a tag correta.
 - **Entidades não carregam após salvar opções**: deixe `Device IDs` vazio para descoberta automática, salve e aguarde um ciclo de polling; ative logs `custom_components.prudentes_tuya_all: debug` para inspecionar.
 - **Aviso de performance do `sun.sun` (~0.9s)**: entidade nativa; monitore recorrência e avalie abertura de issue upstream se o atraso aumentar.
