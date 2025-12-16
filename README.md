@@ -9,7 +9,7 @@ Repositório completo para demonstrar uma stack MQTT com HiveMQ CE, um dashboard
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Dashboard CodeX](#dashboard-codex)
 - [Tutorial Home Assistant no VirtualBox](#tutorial-home-assistant-no-virtualbox)
-- [Instalação da integração Tuya](#instalação-da-integração-tuya)
+- [Instalação da integração Tuya via HACS](#instalação-da-integração-tuya-via-hacs)
 - [Estrutura de documentação por funcionalidade](#estrutura-de-documentação-por-funcionalidade)
 - [Roadmap e troubleshooting](#roadmap-e-troubleshooting)
 
@@ -102,30 +102,39 @@ Passo a passo clique a clique para a topologia descrita:
 5. **Descobrir o IP** mostrado no console ou em **Exibir > Dispositivos de rede** e acesse `http://homeassistant.local:8123`.
 6. **Fixar IP 10.10.10.100** (recomendado):
    - No Home Assistant vá em **Settings > System > Network > IPv4** e configure **Static IP** para `10.10.10.100`/24 e gateway do seu roteador, ou faça a reserva DHCP no Deco.
-7. **Habilitar acesso a arquivos**:
-   - Instale o addon **File Editor** via **Settings > Add-ons > Add-on Store**, clique em **Install** e depois **Start**.
-   - Alternativamente, habilite o addon SSH e conecte para manipular `config/`.
-8. **Copiar o custom component**:
-   - Crie (ou confirme) a pasta `config/custom_components`.
-   - Copie `custom_components/prudentes_tuya_all` deste repositório para `config/custom_components/prudentes_tuya_all` na VM.
-9. **Reiniciar o Home Assistant** em **Settings > System > Restart** (confirme o prompt de reinício).
-10. **Adicionar a integração**:
-    - Vá em **Settings > Devices & Services > Add Integration**.
-    - Busque por **Prudentes Tuya All** e preencha **Tuya Access ID**, **Access Secret**, **Região**, **Base URL** (ex.: `https://openapi.tuyaus.com`) e **Device IDs** separados por vírgula.
-11. **Ajustar opções**:
-    - Após concluir, clique em **Configure** na integração para definir intervalo de polling e habilitar/desabilitar datapoints específicos.
-12. **Validar entidades**:
-    - Acesse **Settings > Devices & Services > Prudentes Tuya All > Entities** e confirme a criação de sensores, switches, números, selects e o sensor de diagnóstico por dispositivo.
+7. **Habilitar acesso a arquivos (opcional)**:
+   - Instale o addon **File Editor** ou **SSH** apenas para inspeções gerais; a integração Tuya será instalada via HACS (sem cópia manual para `custom_components`).
+8. **Instalar a integração via HACS**:
+   - Siga a seção [Instalação da integração Tuya via HACS](#instalação-da-integração-tuya-via-hacs) para adicionar o repositório, baixar e reiniciar o HA.
+9. **Adicionar a integração**:
+   - Após reiniciar, acesse **Settings > Devices & Services > Add Integration** e escolha **Prudentes Tuya All**.
+   - Informe **Access ID**, **Access Secret**, **Região** e **Base URL**; deixe **Device IDs** vazio para descoberta automática.
+10. **Validar entidades**:
+    - Vá em **Settings > Devices & Services > Prudentes Tuya All > Entities** e confirme switches/binary_sensors, numbers, selects e sensor de diagnóstico.
 
-## Instalação da integração Tuya
-- Credenciais não são salvas no código; forneça-as apenas via UI do HA.
-- Polling configurável e entidades criadas para **todos** os datapoints retornados.
-- Mapas de plataforma: bool → switch/binary_sensor, enum/string → select/sensor, value → number/sensor, JSON → sensor com atributos completos.
-- Sensor de diagnóstico agrega todos os DPs e schema como atributos.
+## Instalação da integração Tuya via HACS
+Passo a passo completo para instalar a integração como **repositório externo** (sem copiar para `config/custom_components`):
+1. **Adicionar o repositório**: em **HACS > Integrations**, abra o menu **⋮** → **Custom repositories**, cole a URL deste Git e escolha **Integration**.
+2. **Baixar pelo HACS**: em **HACS > Integrations > Explore & Download repositories**, busque **Prudentes Tuya All** → **Download** → confirme a versão.
+3. **Reiniciar o HA**: **Settings > System > Restart** para carregar o componente.
+4. **Criar a integração**: **Settings > Devices & Services > Add Integration** → selecione **Prudentes Tuya All** → informe **Access ID**, **Access Secret**, **Região** e **Base URL**.
+5. **Descoberta automática**: deixe **Device IDs** vazio para que o fluxo use `/v2.0/cloud/thing/device` com `last_row_key` e traga todos os dispositivos Tuya do seu projeto.
+6. **Ajustar opções**: em **Configure**, altere o **intervalo de polling** e, se quiser, limite a lista de devices; vazia = descoberta contínua.
+7. **Validar entidades**: em **Settings > Devices & Services > Prudentes Tuya All > Entities**, confira switches/binary_sensors para `bool`, numbers para `value/integer/float`, selects para `enum/string`, sensores para todos os datapoints e o sensor `diagnostic` com atributos de schema.
+
+Notas dinâmicas:
+- As definições de cada datapoint são lidas do endpoint `/v1.0/iot-03/devices/{id}/specification` (functions + status) e do `shadow` (`/v2.0/cloud/thing/{id}/shadow/properties`).
+- O client obtém token via `/v1.0/token` e assina todas as chamadas com `access_token`.
+- As entidades refletem writability: `functions` viram entidades de controle, `status` viram leitura.
 
 ## Estrutura de documentação por funcionalidade
 - [`funcionalidades/mqtt-dashboard/README.md`](funcionalidades/mqtt-dashboard/README.md): guia do dashboard MQTT + API, passo a passo clicável para publicar e observar mensagens.
-- [`funcionalidades/tuya-integration/README.md`](funcionalidades/tuya-integration/README.md): instruções detalhadas para instalar e operar o custom component `prudentes_tuya_all` no HA.
+- [`funcionalidades/tuya-integration/README.md`](funcionalidades/tuya-integration/README.md): instalação via HACS, descoberta automática de devices Tuya e mapeamento dinâmico de datapoints.
+
+### Árvore de documentação navegável
+- **Docs principais**: este `README.md` (visão geral, tutoriais e links rápidos).
+- **Funcionalidades**: cada pasta em `funcionalidades/` contém seu próprio `README.md` atualizado a cada alteração.
+- **Codex**: pasta `codex/` com `request.md`, `improved-prompt.md`, `executed.md`, `suggest.md` e `error.md` para rastreabilidade das execuções.
 
 ## Roadmap e troubleshooting
 - Melhorar detecção de *writable* vs *read-only* ao mapear bool para switch/binary_sensor usando o schema do spec Tuya.
