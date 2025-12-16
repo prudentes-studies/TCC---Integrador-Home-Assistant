@@ -1,33 +1,31 @@
 # Execução — Resumo Detalhado
 
 ## Contexto
-- Data/hora: <preencha>
+- Data/hora: 2025-12-16T01:30:55+00:00
 - Fonte: codex/request.md
-- Versão desta execução: inicial
+- Versão desta execução: revisão de imagens `latest` e tutoriais clique a clique
 
 ## Interpretação do pedido
-- Entregar código completo (Docker + Node + UI + custom component HA) sem textos acadêmicos.
-- Stack: HiveMQ CE, dashboard Node/Bootstrap, Tuya Cloud custom component via Config Flow.
-- Conectividade: HA em 10.10.10.100/24; MQTT local; Tuya via internet.
+- Atualizar todos os serviços e imagens Docker para sempre usarem a versão estável mais recente (tag `latest`).
+- Reescrever todos os READMEs com passos ultradetalhados, clique a clique, para subir a stack, usar o dashboard MQTT e instalar a integração Tuya no Home Assistant.
+- Registrar rastreabilidade em `codex/*` e manter documentação estruturada por funcionalidade.
 
 ## Ações realizadas
-- Construída stack Docker com HiveMQ CE, app Node 20 (Express + SSE + mqtt.js + ha.js), demo publisher opcional e Node-RED comentado.
-- Implementada UI CodeX (EJS + Bootstrap) com rotas `/`, `/devices`, `/mqtt`, `/health` e SSE para log em tempo real.
-- Documentado e exposto Swagger (`docs/swagger.yaml`) via `/swagger`.
-- Criada integração Home Assistant `prudentes_tuya_all` com Config/Options Flow, DataUpdateCoordinator, entidades por DP (sensor, switch, number, select, binary_sensor) e sensor diagnóstico; cliente Tuya com assinatura HMAC.
-- Produzido README principal com tutorial clique a clique do HA no VirtualBox, variáveis de ambiente e índice para READMEs de funcionalidades; adicionados READMEs em `funcionalidades/*`.
-- Gerados artefatos de rastreio: `codex/improved-prompt.md`, `codex/suggest.md`, `codex/error.md` (sem erros), `.env.example`.
+- Atualizados `Dockerfile` e `Dockerfile.demo` para `node:latest-alpine` conforme orientação de usar imagens mais recentes.
+- Ajustado `docker-compose.yml` para `hivemq/hivemq-ce:latest` e comentário do Node-RED para `nodered/node-red:latest`, reforçando uso de imagens estáveis atuais.
+- Reescrito `README.md` com índice navegável e tutoriais passo a passo (clonagem, `.env`, `docker compose`, validação do dashboard, habilitação de serviços opcionais, guia VirtualBox + HA e integração Tuya).
+- Reescritos `funcionalidades/mqtt-dashboard/README.md` e `funcionalidades/tuya-integration/README.md` com roteiros clique a clique para operar o dashboard MQTT e instalar/validar o custom component no HA.
+- Atualizados artefatos de rastreio: `codex/improved-prompt.md` (novo prompt autossuficiente), `codex/suggest.md` (sugestões alinhadas ao uso de `latest`), `codex/error.md` (limitações registradas) e este `codex/executed.md`.
 
 ## Artefatos gerados/atualizados
-- `docker-compose.yml`, `Dockerfile`, `Dockerfile.demo`, `package.json`, `.env.example`.
-- Código Node: `src/server.js`, `src/mqtt.js`, `src/ha.js`, `views/*`, `docs/swagger.yaml`, `scripts/demoPublisher.js`.
-- Custom component HA: `custom_components/prudentes_tuya_all/*` (manifest, config_flow, coordinator, plataformas, traduções, cliente Tuya).
-- Documentação: `README.md`, `funcionalidades/mqtt-dashboard/README.md`, `funcionalidades/tuya-integration/README.md`, `codex/*`.
+- `Dockerfile`, `Dockerfile.demo`, `docker-compose.yml` — imagens ajustadas para `latest`.
+- Documentação: `README.md`, `funcionalidades/mqtt-dashboard/README.md`, `funcionalidades/tuya-integration/README.md`.
+- Rastreamento: `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md`, `codex/error.md`.
 
 ## Testes/checagens
-- Não executado em tempo de desenvolvimento (ambiente limitado); recomenda-se `docker compose up` e navegação manual nas rotas.
+- Não executados testes automatizados; ações limitadas a atualização de imagens e documentação. Recomenda-se `docker compose up` e verificação manual das rotas do dashboard/HA.
 
 ## Próximos passos recomendados
-- Incluir testes automatizados para Node (Jest) e validações HA (pytest + hassfest).
-- Refinar mapeamento de tipos Tuya usando schema detalhado e marcar DPs somente leitura.
-- Adicionar autenticação opcional na API e TLS no broker para produção.
+- Incluir checagens automáticas para validar disponibilidade das imagens `latest` e fallback para LTS em caso de falha.
+- Adicionar testes de fumaça (publicar/assinar MQTT, listar entidades do HA) antes de cada release.
+- Manter changelog das versões das imagens usadas para rastrear atualizações.

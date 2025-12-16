@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   mqtt-broker:
-    image: hivemq/hivemq-ce:2023.12
+    image: hivemq/hivemq-ce:latest
     container_name: hivemq-ce
     ports:
       - "1883:1883"
@@ -26,7 +26,7 @@ services:
       - ./.env:/usr/src/app/.env:ro
 
   # node-red:
-  #   image: nodered/node-red:3.1
+  #   image: nodered/node-red:latest
   #   container_name: node-red-demo
   #   ports:
   #     - "1880:1880"
