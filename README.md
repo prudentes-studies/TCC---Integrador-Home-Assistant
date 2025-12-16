@@ -14,6 +14,7 @@ Stack de demonstração que combina **HiveMQ CE** (broker MQTT), **dashboard Cod
 - [Tutorial Home Assistant no VirtualBox](#tutorial-home-assistant-no-virtualbox)
 - [Instalação da integração Tuya via HACS](#instalação-da-integração-tuya-via-hacs)
 - [Discovery completo Tuya via CLI](#discovery-completo-tuya-via-cli)
+- [Integração Broadlink no Node-RED](#integração-broadlink-no-node-red)
 - [Documentação por funcionalidade](#documentação-por-funcionalidade)
 - [Índice de documentação e referências cruzadas](#índice-de-documentação-e-referências-cruzadas)
 - [Roadmap e troubleshooting](#roadmap-e-troubleshooting)
@@ -86,6 +87,7 @@ npm start
 - **`codex/executed.md` / `codex/error.md` / `codex/suggest.md`** — trilha de execução, erros e variações sugeridas.
 - **`funcionalidades/mqtt-dashboard/README.md`** — instruções da UI MQTT/CodeX.
 - **`funcionalidades/tuya-integration/README.md`** — operação detalhada da integração `prudentes_tuya_all` e fluxo HACS.
+- **`funcionalidades/broadlink-nodered/README.md`** — guia para aprender/enviar IR/RF via Broadlink no Node-RED integrado ao HA.
 - **`custom_components/prudentes_tuya_all/data/localtuya_mappings.json`** — conhecimento extraído do hass-localtuya usado pelo classificador.
 - **Scripts auxiliares**:
   - `scripts/tuya_discover.py` — discovery completo e export JSON (`output/tuya_inventory.json`).
@@ -151,14 +153,53 @@ Workflow **CI-CD** em `.github/workflows/ci.yml` com três validações:
    ```
    O script cria/atualiza `localtuya_mappings.json` lendo o vendor `hass_localtuya` incluso em `custom_components/prudentes_tuya_all/vendor/`.
 
+## Integração Broadlink no Node-RED
+Guia passo a passo para usar dispositivos Broadlink (ex.: RM Mini/RM4) no Node-RED do Home Assistant.
+
+1. **Instalar o add-on Node-RED**
+   - Acesse **Settings > Add-ons > Add-on Store** no Home Assistant.
+   - Busque **Node-RED** (oficial ou da comunidade) e clique em **Install**.
+   - Após a instalação, abra **Configuration** e defina uma senha/ingresso seguro; inicie o add-on.
+
+2. **Adicionar integrações Broadlink no Home Assistant**
+   - Vá em **Settings > Devices & Services > Add Integration** e procure por **Broadlink**.
+   - Coloque o dispositivo Broadlink em modo pareamento (segure o botão até piscar) e siga o wizard para concluir.
+   - Confirme que o dispositivo aparece com entidades (ex.: `remote.*`).
+
+3. **Configurar acesso no Node-RED**
+   - Abra o Node-RED via **Ingress** ou porta externa configurada.
+   - No menu superior direito, escolha **Manage palette > Install** e pesquise por `node-red-contrib-broadlink-control` (ou pacote equivalente) para enviar comandos IR/RF.
+   - Garanta que o palette `node-red-contrib-home-assistant-websocket` já está instalado para acionar serviços do HA.
+
+4. **Criar fluxo para aprender e enviar comandos**
+   - Arraste um nó **`broadlink-config`** (configuração do dispositivo) e informe o IP do Broadlink.
+   - Use o nó **`broadlink-learn`** para capturar um sinal IR/RF: injete uma mensagem de gatilho, coloque o controle remoto em frente ao dispositivo e pressione o botão. O código aprendido fica em `msg.payload`.
+   - Conecte a saída do `broadlink-learn` a um nó **`debug`** para copiar o payload; salve o código em um `function` node ou em `flow/global context` para reuso.
+   - Para transmitir, utilize um nó **`broadlink-send`** apontando para o mesmo config e injete o payload salvo.
+
+5. **Acionando via Home Assistant**
+   - Adicione um nó **`call-service`** do palette Home Assistant para expor automações, chamando o serviço `remote.send_command` com `entity_id` do Broadlink e `command` igual ao payload capturado (ou um alias salvo via script no HA).
+   - Opcionalmente, adicione um nó **`events: state`** para acionar o envio ao mudar o estado de uma entidade (ex.: botão virtual ou cena).
+
+6. **Salvar e versionar o fluxo**
+   - Clique em **Deploy** após testar os nós.
+   - Exporte o fluxo (menu hamburguer > Export) e salve em `funcionalidades/broadlink-nodered/flow.json` ou outro path versionado.
+
+7. **Dicas de troubleshooting**
+   - Se o Node-RED não aprender o comando, confirme que o dispositivo está na mesma VLAN e que a porta de descoberta não está bloqueada.
+   - Para RF, valide se o modelo Broadlink suporta 433/315 MHz conforme o controle original.
+   - Erros de autenticação no palette Broadlink podem indicar IP incorreto ou dispositivo não pareado; refaça o wizard no HA e atualize o IP no Node-RED.
+
 ## Documentação por funcionalidade
 - [`funcionalidades/mqtt-dashboard/README.md`](funcionalidades/mqtt-dashboard/README.md): UI CodeX/Bootstrap para MQTT, passos para publicar/assinar, uso do Swagger e healthcheck.
 - [`funcionalidades/tuya-integration/README.md`](funcionalidades/tuya-integration/README.md): instalação via HACS, descoberta automática, segredos da pipeline Tuya e troubleshooting do fluxo de opções.
+- [`funcionalidades/broadlink-nodered/README.md`](funcionalidades/broadlink-nodered/README.md): guia passo a passo para integrar dispositivos Broadlink ao Node-RED no Home Assistant, incluindo nós recomendados e troubleshooting.
 
 ## Índice de documentação e referências cruzadas
 - **`README.md` (este arquivo):** visão geral da stack, pré-requisitos, comandos e troubleshooting.
 - **`funcionalidades/mqtt-dashboard/README.md`:** guia operacional do dashboard MQTT e como validar o HiveMQ Control Center.
 - **`funcionalidades/tuya-integration/README.md`:** fluxo completo da integração Tuya, incluindo o ajuste do Options Flow e logs recomendados.
+- **`funcionalidades/broadlink-nodered/README.md`:** passos para capturar e enviar comandos Broadlink via Node-RED usando o Home Assistant.
 - **`codex/request.md`:** entrada original das correções solicitadas.
 - **`codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md`, `codex/error.md`:** rastreabilidade de prompt, variações, execução e limitações encontradas nesta entrega.
 - **Árvore sugerida:**
@@ -167,6 +208,7 @@ Workflow **CI-CD** em `.github/workflows/ci.yml` com três validações:
   funcionalidades/
     mqtt-dashboard/README.md
     tuya-integration/README.md
+    broadlink-nodered/README.md
   codex/
     request.md
     improved-prompt.md
@@ -181,6 +223,7 @@ README.md
 funcionalidades/
   mqtt-dashboard/README.md
   tuya-integration/README.md
+  broadlink-nodered/README.md
 codex/
   request.md
   improved-prompt.md
