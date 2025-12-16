@@ -15,8 +15,8 @@ from custom_components.prudentes_tuya_all.tuya_client import TuyaClient
 
 
 async def _run_discovery() -> int:
-  access_id = os.getenv("TUYA_ACCESS_ID")
-  access_secret = os.getenv("TUYA_ACCESS_SECRET")
+  access_id = os.getenv("TUYA_CLIENT_ID") or os.getenv("TUYA_ACCESS_ID")
+  access_secret = os.getenv("TUYA_CLIENT_SECRET") or os.getenv("TUYA_ACCESS_SECRET")
   region = os.getenv("TUYA_REGION") or "us"
   base_url = os.getenv("TUYA_BASE_URL", DEFAULT_BASE_URL)
 

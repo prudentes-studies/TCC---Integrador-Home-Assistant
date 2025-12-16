@@ -1,40 +1,38 @@
 # Execução — Resumo Detalhado
 
 ## Contexto
-- Data/hora: <preencher pelo revisor>
+- Data/hora: <preencha com o horário de entrega>
 - Fonte: `codex/request.md`
-- Versão desta execução: commit desta branch
+- Versão desta execução: atualização do pipeline Tuya Cloud com integração hass-localtuya vendorizada.
 
 ## Interpretação do pedido
-- Implementar um discovery pipeline completo para o Tuya Development Cloud listando todos os devices (inclusive sub-devices) sem depender de estarem online.
-- Mesclar specifications, model e status para mapear dpCode/dpId, tipos, valores, acesso e valor atual; classificar automaticamente o entityType com confidence/reason.
-- Exportar o resultado em JSON via comando/CLI reutilizando o cliente HTTP existente, com concorrência, retry/backoff e testes unitários.
-- Atualizar documentação e arquivos `codex/*` mantendo rastreabilidade e índice navegável.
+- Reforçar discovery Tuya Cloud usando endpoints oficiais (categorias, devices com paginação completa, specification e shadow) e gerar inventário consolidado.
+- Implementar classificador inspirado no hass-localtuya combinando regras determinísticas por `dp_code`.
+- Exportar conhecimento hass-localtuya para JSON, adicionar testes e atualizar documentação/README.
 
 ## Ações realizadas
-- Expandido `custom_components/prudentes_tuya_all/tuya_client.py` com retry/backoff para 429/5xx, paginação auxiliar e novos endpoints (`/v1.1/.../specifications`, `/v2.0/.../model`, `/v1.0/.../status`, sub-devices, model) mantendo assinatura HMAC.
-- Criado módulo `custom_components/prudentes_tuya_all/discovery.py` que pagina devices, inclui sub-devices, realiza chamadas concorrentes por device (spec/model/status/detail), normaliza `dpId/dp_id`, converte `values` quando string JSON, une dados por `dpCode`, calcula `currentValue` e classifica `entityType` com confidence/reason.
-- Atualizado `custom_components/prudentes_tuya_all/coordinator.py` para reutilizar o pipeline de discovery na integração HA, persistindo lista descoberta e anexando shadow/model/status/detail em cada ciclo.
-- Adicionado CLI `scripts/tuya_discover.py` com variáveis `TUYA_*`, controle de concorrência e geração do artefato `artifacts/tuya-entities-map.json`; atualizado `package.json` com scripts `tuya:discover` e `test:python`.
-- Criados testes unitários (`tests/test_discovery.py`) cobrindo paginação, merge/normalização de `dpId`, parse do `model` string e heurísticas de classificação.
-- Documentação revisada: `README.md` ganhou seção de discovery via CLI, variáveis `TUYA_CONCURRENCY`/`TUYA_INCLUDE_SUB`, nota de testes Python; `funcionalidades/tuya-integration/README.md` descreve rotas usadas, merge de fontes e como gerar o JSON consolidado.
-- Reescritos `codex/improved-prompt.md` (prompt autossuficiente para o discovery), `codex/suggest.md` (novas variações) e este registro.
+- Refatorei `TuyaClient` para assinar com HMAC-SHA256, renovar token em 401, aplicar retry/backoff para 429/5xx e paginar via `/v1.3/iot-03/devices`.
+- Criei `LocalTuyaKnowledge` e vendorizei `hass_localtuya/ha_entities` com script `scripts/extract_localtuya_mappings.py` que gera `data/localtuya_mappings.json`.
+- Reescrevi o pipeline em `discovery.py` para coletar categorias, devices, specification + shadow, mesclar DPs (typeSpec/min/max/range/step), classificar entidades (heurísticas + hass-localtuya) e produzir estrutura `project/categories/devices/entities`.
+- Atualizei CLI (`scripts/tuya_discover.py`) para usar novas envs (`TUYA_CLIENT_ID/SECRET`), salvar em `output/tuya_inventory.json` e mascarar client_id.
+- Atualizei testes (`tests/test_discovery.py`) cobrindo paginação, merge de specification/shadow e classificação baseada em heurísticas/knowledge.
+- Documentei variáveis, árvore de documentação, fluxo de discovery e integração hass-localtuya no `README.md` e `funcionalidades/tuya-integration/README.md`.
+- Reescrevi os artefatos `codex/improved-prompt.md`, `codex/suggest.md`, `codex/executed.md`, `codex/error.md` conforme template solicitado.
 
 ## Artefatos gerados/atualizados
-- `custom_components/prudentes_tuya_all/tuya_client.py` — retries, novos endpoints, paginação utilitária.
-- `custom_components/prudentes_tuya_all/discovery.py` — pipeline de discovery, merge e classificação de entidades.
-- `custom_components/prudentes_tuya_all/coordinator.py` — uso do novo pipeline na atualização periódica.
-- `scripts/tuya_discover.py` — CLI para gerar `artifacts/tuya-entities-map.json` com resumo no console.
-- `tests/test_discovery.py` — unidade para paginação/merge/heurísticas.
-- `package.json` — scripts `tuya:discover` e `test:python`.
-- `README.md` e `funcionalidades/tuya-integration/README.md` — instruções de discovery, variáveis e índice.
-- `codex/improved-prompt.md`, `codex/suggest.md`, `codex/error.md`, `codex/executed.md` — rastreabilidade desta entrega.
+- `custom_components/prudentes_tuya_all/tuya_client.py` — cliente Tuya robusto com retry/backoff e paginação.
+- `custom_components/prudentes_tuya_all/discovery.py` — pipeline de discovery/classificação e export JSON.
+- `custom_components/prudentes_tuya_all/localtuya_knowledge.py` e vendor `custom_components/prudentes_tuya_all/vendor/hass_localtuya/` + `data/localtuya_mappings.json`.
+- Scripts: `scripts/tuya_discover.py`, `scripts/ci_tuya_discovery.py`, `scripts/extract_localtuya_mappings.py`.
+- Testes: `tests/test_discovery.py`.
+- Documentação: `README.md`, `funcionalidades/tuya-integration/README.md`, `codex/*`.
 
 ## Testes/checagens
-- `npm run test:python` — executado com sucesso; cobre paginação, merge/normalização e heurísticas (usa stubs para Home Assistant).
-- `npm run lint` — não reexecutado nesta rodada (foco em Python/CLI); permanece recomendado.
+- `python scripts/extract_localtuya_mappings.py` — geração do conhecimento hass-localtuya (necessário para classificador).
+- `python -m unittest tests/test_discovery.py` — valida paginação, merge e heurísticas com fixtures/mocks.
 
 ## Próximos passos recomendados
-- Rodar `npm run tuya:discover` com segredos `TUYA_*` reais para validar o JSON gerado contra a Tuya Cloud.
-- Estender testes com mocks de HTTP para cobrir retries/backoff e cenários de erro do `/model`.
-- Avaliar cache persistente de tokens e exposição opcional do artefato JSON via endpoint HTTP no HA.
+- Adicionar geração opcional de CSV achatado (`output/tuya_inventory.csv`) para auditoria rápida.
+- Incluir device_class e unidades sugeridas no classificador, usando heurísticas + dados do hass-localtuya.
+- Implementar cache de tokens em disco e compressão opcional do inventário para execuções em CI.
+- Criar fixtures adicionais com devices multi-canal (switch_1/switch_2) para validar agrupamentos de light/cover.

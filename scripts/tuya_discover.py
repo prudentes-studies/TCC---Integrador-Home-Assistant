@@ -11,16 +11,16 @@ from custom_components.prudentes_tuya_all.const import DEFAULT_BASE_URL
 from custom_components.prudentes_tuya_all.discovery import discover_all_entities, summarize
 from custom_components.prudentes_tuya_all.tuya_client import TuyaClient
 
-ARTIFACT_PATH = Path("artifacts/tuya-entities-map.json")
+ARTIFACT_PATH = Path("output/tuya_inventory.json")
 
 
 def _load_env() -> tuple[str, str, str, str]:
-  access_id = os.getenv("TUYA_ACCESS_ID")
-  access_secret = os.getenv("TUYA_ACCESS_SECRET")
+  access_id = os.getenv("TUYA_CLIENT_ID") or os.getenv("TUYA_ACCESS_ID")
+  access_secret = os.getenv("TUYA_CLIENT_SECRET") or os.getenv("TUYA_ACCESS_SECRET")
   region = os.getenv("TUYA_REGION", "us")
   base_url = os.getenv("TUYA_BASE_URL", DEFAULT_BASE_URL)
   if not access_id or not access_secret:
-    raise SystemExit("Preencha TUYA_ACCESS_ID e TUYA_ACCESS_SECRET para executar o discovery.")
+    raise SystemExit("Preencha TUYA_CLIENT_ID/TUYA_CLIENT_SECRET para executar o discovery.")
   return access_id, access_secret, region, base_url
 
 

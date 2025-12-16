@@ -40,11 +40,10 @@ Expor todos os datapoints Tuya Cloud via Home Assistant de forma **100% dinâmic
 ## Funcionamento dinâmico
 - O `TuyaClient` busca token (`/v1.0/token`) e usa o header `access_token` para assinar chamadas, com retry e backoff automático para HTTP 429/5xx.
 - A cada ciclo do coordinator e no comando de discovery, são lidos:
-  - **Lista de devices**: `/v2.0/cloud/thing/device` com paginação via `last_row_key`.
-  - **Detalhes**: `/v2.0/cloud/thing/{id}` para enriquecer `DeviceInfo`.
-  - **Spec/DP ID**: `/v1.1/devices/{id}/specifications` (status + functions) normalizando `dpId/dp_id` e `values` (dict ou JSON string).
-  - **Modelo rico**: `/v2.0/cloud/thing/{id}/model` (campo `model` em string JSON) para obter `typeSpec`, `accessMode` e `abilityId`.
-  - **Status atual**: `/v1.0/iot-03/devices/{id}/status` para preencher `currentValue` em cada DP.
+  - **Categorias**: `/v1.0/iot-03/device-categories` para mapear `category → nome`.
+  - **Lista de devices**: `/v1.3/iot-03/devices` com paginação via `last_row_key` e `has_more`, incluindo devices offline.
+  - **Spec/DP ID**: `/v1.0/iot-03/devices/{id}/specification` (status + functions) normalizando `dpId/dp_id` e `values` (dict ou JSON string).
+  - **Shadow/propriedades**: `/v2.0/cloud/thing/{id}/shadow/properties` para preencher `currentValue` em cada DP.
   - **Sub-devices** (opcional): `/v1.0/iot-03/devices/{id}/sub-devices` quando o device é gateway.
 - O merge de fontes indexa por `dpCode`, associa `dpId`, `typeSpec`, `accessMode`, `currentValue` e classifica automaticamente o `entityType` (switch/light/fan/cover/climate/sensor/select/number/button/unknown) com score e justificativa.
 
@@ -57,13 +56,13 @@ Expor todos os datapoints Tuya Cloud via Home Assistant de forma **100% dinâmic
 ## Discovery via CLI (JSON consolidado)
 - Com `python` disponível, execute:
   ```bash
-  export TUYA_ACCESS_ID=...
-  export TUYA_ACCESS_SECRET=...
+  export TUYA_CLIENT_ID=...
+  export TUYA_CLIENT_SECRET=...
   export TUYA_REGION=us  # ou eu/in/cn
-  npm run tuya:discover
+  python scripts/tuya_discover.py
   ```
 - Parâmetros opcionais: `TUYA_BASE_URL`, `TUYA_CONCURRENCY` (padrão 3) e `TUYA_INCLUDE_SUB=false` para ignorar sub-devices.
-- Saída: `artifacts/tuya-entities-map.json` contendo `project`, lista de devices, entidades com `dpCode/dpId`, `dpType`, `typeSpec`, `access`, `currentValue`, `entityType`, `confidence` e `reason`. O console mostra contagens e erros por device.
+- Saída: `output/tuya_inventory.json` contendo `project`, categorias, devices, entidades com `dpCode/dpId`, `dpType`, `typeSpec`, `currentValue` e classificação `ha` (plataforma/features/confidence/reasons). O console mostra contagens e erros por device; o classificador usa heurísticas mais conhecimento exportado do hass-localtuya.
 
 ## Troubleshooting específico desta versão
 - **Erro no Configure com `AttributeError: 'ConfigEntry' object has no attribute 'hass'`:** a Options Flow armazena `config_entry` apenas em atributo privado e usa `self.hass` provido pelo fluxo. Atualize a integração via HACS, reinicie o Home Assistant e reabra **Configure**.
