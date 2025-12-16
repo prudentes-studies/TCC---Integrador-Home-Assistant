@@ -48,7 +48,7 @@ Expor todos os datapoints Tuya Cloud via Home Assistant de forma **100% dinâmic
 - Testes automatizados para validar mapeamento de tipos (`bool`, `enum`, `value`) e envio de comandos.
 
 ## Troubleshooting específico desta versão
-- **Erro no Configure com `AttributeError: property 'config_entry' of 'TuyaOptionsFlowHandler' object has no setter`:** esta versão mantém o `config_entry` em atributo privado, compatível com o Options Flow atual. Atualize a integração via HACS, reinicie o Home Assistant e reabra **Configure**.
+- **Erro no Configure com `AttributeError: 'ConfigEntry' object has no attribute 'hass'`:** a Options Flow armazena `config_entry` apenas em atributo privado e usa `self.hass` provido pelo fluxo. Atualize a integração via HACS, reinicie o Home Assistant e reabra **Configure**.
 - **Device IDs exibidos como caracteres soltos:** o fluxo normaliza qualquer string separada por vírgulas antes de salvar. Reabra **Configure**, ajuste a lista (ex.: `id1,id2,id3`) e salve.
 - **Entidades não aparecem após salvar opções:** deixe `Device IDs` vazio para redescoberta automática, confirme o intervalo de polling e acompanhe os logs (`custom_components.prudentes_tuya_all: debug`) para verificar se devices foram carregados.
 - **Descoberta automática não retornou IDs no CI:** preencha os segredos `TUYA_*` no repositório. Sem segredos, o passo `scripts/ci_tuya_discovery.py` é ignorado e não há validação externa.

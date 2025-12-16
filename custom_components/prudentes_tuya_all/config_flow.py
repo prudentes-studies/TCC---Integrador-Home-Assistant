@@ -67,7 +67,6 @@ class TuyaOptionsFlowHandler(config_entries.OptionsFlow):
     # A OptionsFlow do Home Assistant mantém `config_entry` apenas como leitura;
     # usamos o atributo privado para evitar AttributeError e preservar o contexto.
     self._config_entry = config_entry
-    self.hass = config_entry.hass
 
   @staticmethod
   def _normalize_device_ids(value):

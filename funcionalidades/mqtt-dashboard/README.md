@@ -1,7 +1,7 @@
 # Dashboard MQTT CodeX
 
 ## Objetivo
-UI CodeX/Bootstrap com backend Node.js (imagens Docker `latest`) para monitorar e publicar mensagens MQTT em tópicos `tcc/demo/*`, além de expor Swagger e saúde.
+UI CodeX/Bootstrap com backend Node.js (imagens Docker `latest`) para monitorar e publicar mensagens MQTT em tópicos `tcc/demo/*`, além de expor Swagger e saúde. O backend usa `mqtt@5.14.1` negociando protocolo v5 com o HiveMQ CE.
 
 ## Pré-requisitos rápidos
 - Stack Docker desta raiz ativa (`docker compose up -d --build`).
@@ -36,6 +36,7 @@ UI CodeX/Bootstrap com backend Node.js (imagens Docker `latest`) para monitorar 
 - Se `http://localhost:8080` mostrar "Internal Error", execute `docker compose pull mqtt-broker` seguido de `docker compose up -d mqtt-broker` e aguarde até 20 segundos para a UI inicializar.
 - Verifique conflitos de porta 8080 no host e, se necessário, altere o mapeamento para outra porta livre (ex.: `- "8081:8080"`).
 - Consulte `docker compose logs mqtt-broker` para conferir mensagens de erro antes de reabrir a página.
+- Se o dashboard não conectar ao broker após atualizar dependências, rode `npm install` para baixar `mqtt@5.14.1` e reinicie o serviço.
 
 ## Tópicos padrão
 - `tcc/demo/cmd/{device}/{action}`: comandos.

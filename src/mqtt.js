@@ -19,7 +19,11 @@ export class MqttBridge extends EventEmitter {
   }
 
   start() {
-    this.client = mqtt.connect(this.brokerUrl, { clientId: this.clientId });
+    this.client = mqtt.connect(this.brokerUrl, {
+      clientId: this.clientId,
+      protocolVersion: 5,
+      clean: true
+    });
     this.client.on('connect', () => {
       this.emit('status', { level: 'info', message: 'MQTT conectado', clientId: this.clientId });
       this.subscribeToTopics();
